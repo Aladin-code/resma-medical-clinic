@@ -1,0 +1,36 @@
+{
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  },
+  "name": "resma-medical-clinic",
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "prebuild": "npm run prebuild --workspaces --if-present",
+    "pretest": "npm run prebuild --workspaces --if-present",
+    "start": "npm start --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "build:css": "tailwindcss build src/styles.css -o dist/styles.css"
+  },
+  "type": "module",
+  "workspaces": [
+    "src/resma-medical-clinic-frontend"
+  ],
+  "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.1",
+    "@mui/x-data-grid": "^7.18.0",
+    "@mui/x-date-pickers": "^7.18.0",
+    "dayjs": "^1.11.13",
+    "react-calendar": "^5.0.0",
+    "react-data-table-component": "^7.6.2",
+    "react-icons": "^5.2.1",
+    "react-router-dom": "^6.25.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6"
+  }
+}

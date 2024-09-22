@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "resma-medical-clinic-backend": {
+      "main": "src/resma-medical-clinic-backend/main.mo",
+      "type": "motoko"
+    },
+    "resma-medical-clinic-frontend": {
+      "dependencies": [
+        "resma-medical-clinic-backend"
+      ],
+      "source": [
+        "src/resma-medical-clinic-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "resma-medical-clinic-frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

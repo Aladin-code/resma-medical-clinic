@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.form{
+    max-width: 100%;  
+}
+
+.input-placeholder-padding::placeholder {
+    text-align: left;
+  }
+.input-placeholder-padding{
+    padding-left: 0.5rem;
+}
