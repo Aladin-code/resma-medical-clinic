@@ -435,23 +435,6 @@ function Appointments({userInfo, handleLogout}) {
             <div className='ml-64 flex-grow font-poppins p-3'>
             <h1 className='mt-4  mb-4 px-3 text-2xl font-bold text-[#4673FF]'>APPOINTMENTS</h1>
             <div>
-                <Snackbar
-                    open={success}
-                    autoHideDuration={3000}
-                    message=""
-                    onClose={handleClose}
-                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
-                    key={`${vertical}${horizontal}`}
-                   >
-                     <Alert
-                        onClose={handleClose}
-                        severity="success"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                     >
-                     Changes saved successfully!
-                    </Alert>
-                </Snackbar>
             </div>
             <div>
             <Snackbar
