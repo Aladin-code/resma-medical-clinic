@@ -4,9 +4,14 @@ import { resma_medical_clinic_backend } from 'declarations/resma-medical-clinic-
 import Sidebar from '../Sidebar.jsx';
 import { IoIosArrowBack } from "react-icons/io";
 import { NavLink } from 'react-router-dom';
+import MoonLoader from "react-spinners/ClipLoader";
 function UpdatePatient() {
     const navigate = useNavigate();
     const { id } = useParams(); // Get the id from the URL
+
+    const [saveLoader, setSaveLoader] = useState(false);
+    let [color, setColor] = useState("#fff");
+
     const [patient, setPatient] = useState({
         id: '',
         lastName: '',
@@ -69,7 +74,8 @@ function UpdatePatient() {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        const currentDate = new Date().toISOString().split('T')[0]; 
+        setSaveLoader(true);
         try {
             const result = await resma_medical_clinic_backend.addPatient(
                 patient.id,
@@ -83,12 +89,12 @@ function UpdatePatient() {
                 patient.contact,
                 patient.height,
                 patient.weight,
-                patient.emergencyContact
+                patient.emergencyContact,
+                currentDate
             );
 
             if (result) {
-                alert('Patient updated successfully');
-                console.log("Success");
+                setSaveLoader(false);
                 setPatient({
                     id: '',
                     lastName: '',
@@ -106,12 +112,12 @@ function UpdatePatient() {
                         address: '',
                         relationship: '',
                         contact: ''
-                    }
+                    },
+                    registrationDate: ''
                 });
-                navigate(-1);
+                navigate(`/viewPatient/${id}`, { state: { success: true } });
             } else {
-                alert('Failed to create patient');
-                console.log("Failed");
+                navigate('/addAppointment', { state: { failed: true } });
             }
         } catch (error) {
             console.error("Error creating patient:", error);
@@ -123,25 +129,40 @@ function UpdatePatient() {
         navigate(-1); // Go back to the previous page
     };
 
+    
     return (
         <>
             <Sidebar />
             <div className='h-screen ml-64 flex-grow font-poppins p-3'>
             <div className='flex justify-between items-center mb-4'>
                     <div className=''>
-                        <NavLink to="/records" className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#014BA8]" href="">MEDICAL RECORDS / </NavLink>
-                        <button onClick={handleCancel} className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#014BA8]" href="">PATIENT INFORMATION  </button>
-                        <NavLink  className="fw-32 font-semibold  text-xl text-[#014BA8] " href=""> / UPDATE PATIENT</NavLink>
+                        <NavLink to="/records" className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#4673FF]" href="">MEDICAL RECORDS / </NavLink>
+                        <button onClick={handleCancel} className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#4673FF]" href="">PATIENT INFORMATION  </button>
+                        <NavLink  className="fw-32 font-semibold  text-xl text-[#4673FF] " href=""> / UPDATE PATIENT</NavLink>
                     </div>
 
-                    <div className=''>
-                    <button className="w-24 py-1 rounded-3xl font-semibold text-lg bg-[#014BA8] text-white" onClick={handleSubmit}>SAVE</button>
-                    <button onClick={handleCancel} className="w-24  ml-1 py-1 rounded-3xl  font-semibold text-lg bg-[#A9A9A9] text-white">CANCEL</button>
+                    <div className='flex justify-center'>
+                        <button className="w-24 py-1 rounded-3xl font-semibold text-lg bg-[#4673FF] text-white transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg" onClick={handleSubmit}>
+                            {saveLoader ? (
+                                     <p className='flex items-center justify-center'><MoonLoader className=""size={25} color={color} loading={true} /></p>
+                            ): (
+                               "SAVE"
+                            )}
+                        
+                        </button>
+                        <button 
+                            onClick={handleCancel} 
+                            className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white 
+                                    transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md"
+                        >
+                            CANCEL
+                        </button>
+
                     </div>
                 </div>
                 <main className='h-full border-2 shadow-lg rounded-xl relative'>
                
-                <div className='w-full bg-[#014BA8]  rounded rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base'>I. Demographic Information </div>
+                <div className='w-full bg-[#4673FF]  rounded rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base'>I. Demographic Information </div>
                     <div className='w-full mt-2'>
                     <form className="form text-sm" onSubmit={handleSubmit}>
                             <div className='w-full flex px-7 py-1 mt-3'>
@@ -150,7 +171,7 @@ function UpdatePatient() {
                                 <label className=' mr-1  font-semibold text-black ' htmlFor="lastName">Last Name</label>
                                         <br></br>
                                         <input
-                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                             type="text"
                                             name="lastName"
                                             value={patient.lastName}
@@ -163,7 +184,7 @@ function UpdatePatient() {
                                 <label className=' mr-1  font-semibold text-black ' htmlFor="fullName">First Name</label>
                                         <br></br>
                                         <input
-                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                             type="text"
                                             name="firstName"
                                             value={patient.firstName}
@@ -176,7 +197,7 @@ function UpdatePatient() {
                                 <label className=' mr-1 font-semibold text-black '  htmlFor="fullName">Middle Name</label>
                                         <br></br>
                                         <input
-                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                             type="text"
                                             name="middleName"
                                             value={patient.middleName}
@@ -189,7 +210,7 @@ function UpdatePatient() {
                                 <label className=' mr-1 font-semibold text-black ' htmlFor="fullName">Ext. Name</label>
                                         <br></br>
                                         <input
-                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                             type="text"
                                             name="extName"
                                             value={patient.extName}
@@ -205,7 +226,7 @@ function UpdatePatient() {
                                 <div className='w-1/3 mr-4'>
                                     <label className=' mr-1 font-semibold text-black '  htmlFor="dateOfBirth">Date of Birth</label><br></br>
                                     <input
-                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                         type="date"
                                         name="dateOfBirth"
                                         value={patient.dateOfBirth}
@@ -217,7 +238,7 @@ function UpdatePatient() {
                                 <div className='w-1/3 mr-4'>
                                     <label className=' mr-1 font-semibold text-black ' htmlFor="contact">Contact #</label>
                                     <input
-                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                        className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                         type="text"
                                         name="contact"
                                         value={patient.contact}
@@ -231,7 +252,7 @@ function UpdatePatient() {
                                     <div className='w-1/2 mr-4'>
                                         <label className=' mr-1 font-semibold text-black ' htmlFor="gender">Gender</label>
                                         <input
-                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
                                             type="text"
                                             name="gender"
                                             value={patient.gender}
@@ -243,8 +264,8 @@ function UpdatePatient() {
                                     <div className='w-1/3 mr-4'>
                                         <label className=' mr-1 font-semibold text-black ' htmlFor="height">Height</label><br></br>
                                         <input
-                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
-                                            type="text"
+                                            className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
+                                            type="number"
                                             name="height"
                                             value={patient.height}
                                             onChange={handleInputChange}
@@ -255,8 +276,8 @@ function UpdatePatient() {
                                     <div className='w-1/3 mr-4'>
                                         <label className=' mr-1 font-semibold text-black ' htmlFor="weight">Weight</label>
                                             <input
-                                                className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
-                                                type="text"
+                                                className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
+                                                type="number"
                                                 name="weight"
                                                 value={patient.weight}
                                                 onChange={handleInputChange}
@@ -288,7 +309,7 @@ function UpdatePatient() {
                            
                       
                               
-                            <div className='w-full bg-[#014BA8]  rounded rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base mt-3'>II. Emergency Contact </div>
+                            <div className='w-full bg-[#4673FF]  rounded rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base mt-3'>II. Emergency Contact </div>
                         
                             
                             <div className='w-full flex px-7 py-1'>
@@ -340,7 +361,7 @@ function UpdatePatient() {
                                  <div  className='w-1/3 mr-4'>
                                     <label className=' mr-1 font-semibold text-black' htmlFor="contact">Contact #</label>
                                         <input
-                                           className=" mt-1 py-1 w-full border text-[#858796] border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
+                                           className=" mt-1 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-200 input-placeholder-padding"
                                             type="text"
                                             name="contact"
                                             value={patient.emergencyContact.contact}

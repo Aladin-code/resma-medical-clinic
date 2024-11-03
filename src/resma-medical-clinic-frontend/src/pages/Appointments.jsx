@@ -20,20 +20,45 @@ import PropTypes from 'prop-types';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
+import MoonLoader from "react-spinners/ClipLoader";
+import { useLocation } from 'react-router-dom';
 
-
-function Appointments() {
+function Appointments({userInfo, handleLogout}) {
     const [appointmentsEntries, setAppointmentsEntries] = useState([]);
     const [filteredAppointments, setFilteredAppointments] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);  
     const [selectedDate, setSelectedDate] = useState(null);
-    const [openModal, setOpenModal] = useState(false);  // State for modal visibility
+    const [openModal, setOpenModal] = useState(false); 
+    const [doneLoader, setDoneLoader] = useState({});
+    const [cancelLoader, setCancelLoader] = useState({});
     const [success, setSuccess] = useState();
     const [failed, setFailed] = useState(false);
     const [vertical, setVertical] = useState('top'); // Default vertical position
     const [horizontal, setHorizontal] = useState('right');
+    let [color, setColor] = useState("#fff");
+
+    const location = useLocation();
+    const [openSnackbar, setOpenSnackbar] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.success) {
+            setSuccess(true);
+        }else if(location.state?.failed){
+            setFailed(true);
+        }
+    }, [location]);
+
+    useEffect(() => {
+        console.log('userInfo:', userInfo);
+      }, [userInfo]);
+    
+      if (userInfo.length === 0) {
+        return <div>Loading user information...</div>;
+      }
+      const user = userInfo[0];
+
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') {
           return;
@@ -48,6 +73,7 @@ function Appointments() {
                 padding: '0',  // Add padding to the entire row
                 margin: '0',
                 borderLeft: '1px solid #EFF2F7',
+                
                 // Add margin to the entire row
             },
         },
@@ -58,6 +84,7 @@ function Appointments() {
                 margin: '0', 
                 fontSize: '12px ', 
                 border: '1px solid #EFF2F7',
+              
                  // Add margin to header cells if needed
             },
         },
@@ -70,6 +97,7 @@ function Appointments() {
                 borderTop: '1px solid #EFF2F7',
                 borderLeft: '1px solid #EFF2F7',
                 borderRight: '1px solid #EFF2F7',
+                color: '#4673FF'
             },
         }
     };// De rows per page
@@ -83,10 +111,17 @@ function Appointments() {
         });
     
         setAppointmentsEntries(sortedAppointments);
-        setFilteredAppointments(sortedAppointments);  // Initialize with all appointments
+        setFilteredAppointments(sortedAppointments); // Initialize with all appointments
+    
+        // Find the earliest upcoming appointment
+        const upcomingAppointments = sortedAppointments.filter(([id, app]) => app.status === "Upcoming");
+        const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+        setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
     };
+    
      // Handle tab changes to filter appointments based on tab selection
     
+     const [latestAppointment, setLatestAppointment] = useState(null);
     useEffect(() => {
         fetchAllAppointments();
     }, []);
@@ -135,58 +170,132 @@ function Appointments() {
     const handleCloseModal = () => {
         setOpenModal(false);
     };
-    const columns = [
-        {
-            name: 'Patient Name',
-            selector: row => row.name,
-            sortable: true,
-        },
-        {
-            name: 'Date',
-            selector: row => formatDate(row.timestamp),
-            // sortable: true,
-        },
-        {
-            name: 'Time',
-            selector: row => formatTime(row.timestamp),
-            // sortable: true,
-        },
-        {
-            name: 'Doctor',
-            selector: row => row.doctor,
-            // sortable: true,
-        },
-        {
-            name: 'Status',
-            selector: row => row.status,
-            sortable: true,
-        },
-        {
-            name: 'Actions',
-            
-            cell: row => (
-                <>
-                    <Tooltip title="Done" placement="top" arrow><button onClick={() => markCompleted(row.id)} className='w-28 rounded-md py-1.5 px-4 bg-green-700 text-center text-white text-base  m-1'><FaCalendarCheck /></button></Tooltip>
-                    <Tooltip title="Reschedule" placement="top" arrow><NavLink to={`/updateAppointment/${row.id}`} className='w-28 rounded-md py-1.5 px-4 bg-blue-700 text-white text-base text-center m-1'><MdEditCalendar /></NavLink></Tooltip>
-                    <Tooltip title="Cancel" placement="top" arrow><button onClick={() => markCancelled(row.id)} className='w-28 rounded-md py-1.5 px-4 bg-red-700 text-white text-base text-center m-1'><MdCancelPresentation /></button></Tooltip>
 
+   const columns = [
+    {
+        name: 'Patient Name',
+        selector: row => row.name,
+        sortable: true,
+    },
+    {
+        name: 'Date',
+        selector: row => formatDate(row.timestamp),
+        // sortable: true,
+    },
+    {
+        name: 'Time',
+        selector: row => formatTime(row.timestamp),
+        // sortable: true,
+    },
+    {
+        name: 'Doctor',
+        selector: row => row.doctor,
+        // sortable: true,
+    },
+    {
+        name: 'Status',
+        selector: row => (
+        <>
+           {row.status == "Completed" && (
+            <>
+            <div className='w-[100px] text-center py-1  rounded-sm font-semibold bg-[#EBFEEF] text-[#8DE7A2]'>{row.status}</div>
+
+            </>
+           )}
+
+        {row.status == "Upcoming" && (
+            <>
+            <div className='w-[100px] py-1 text-center rounded-sm font-semibold bg-[#E2F1FF] text-[#97BDFF]'>{row.status}</div>
+
+            </>
+           )}
+
+        {row.status == "Cancelled" && (
+            <>
+            <div className='w-[100px] py-1 text-center rounded-sm font-semibold bg-[#FFEFEF] text-[#FFB2B2]'>{row.status}</div>
+
+            </>
+           )}   
+        </> 
+            // <div className={`mx-auto py-1 px-4 rounded-lg border ${row.status == 'Completed' ? 'bg-[#EBFEEF]'} `}>{row.status}</div>
+        ),
+        sortable: true,
+    },
+    ...(user.role === "Admin" || user.role === "Secretary" ? [{
+        name: 'Actions',  // Always include the Actions column
+        cell: row => (
+            <>
+            {row.status === 'Upcoming' ? (
+                <>
+                    <Tooltip title="Done" placement="top" arrow>
+                        <button
+                            onClick={() => markCompleted(row.id)}
+                            className='w-28 rounded-md py-1.5 px-4 bg-green-700 text-center text-white text-base m-1'
+                            style={{ position: 'relative', minHeight: '40px' }} // Set a consistent height
+                        >
+                            {doneLoader[row.id] ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                    <MoonLoader size={20} color={color} loading={true} />
+                                </div>
+                            ) : (
+                                <FaCalendarCheck className='text-xl' />
+                            )}
+                        </button>
+                    </Tooltip>
+                    <Tooltip title="Reschedule" placement="top" arrow>
+                        <NavLink
+                            to={`/updateAppointment/${row.id}`}
+                            className='w-28 rounded-md py-1.5 px-4 bg-[#4673FF] text-white text-base  m-1 flex justify-center items-center'
+                            style={{ position: 'relative', minHeight: '40px' }} // Set a consistent height
+                        >
+                            <MdEditCalendar className='text-xl' />
+                        </NavLink>
+                    </Tooltip>
+                    <Tooltip title="Cancel" placement="top" arrow>
+                        <button 
+                            onClick={() => markCancelled(row.id)} 
+                            className='w-28 rounded-md py-1.5 px-4 bg-red-700 text-white text-base text-center m-1'
+                            style={{ position: 'relative', minHeight: '40px' }} // Set a consistent height
+                        >
+                            {cancelLoader[row.id] ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                    <MoonLoader size={20} color={color} loading={true} />
+                                </div>
+                            ) : (
+                                <MdCancelPresentation className='text-xl' />
+                            )}
+                        </button>
+                    </Tooltip>
                 </>
-            )
+             )   : (
+                    <div className='text-gray-500 text-center w-full    '>No Action</div> // Message when no actions are available
+                )}
             
-        },
-    ];
+        
+        </>
+        )
+    }] : []),  // This will include the Actions column only if the user role is Admin or Secretary
+];
+
+    
     const markCompleted = async (id) => {
         let status = "Completed";
-    let result = await resma_medical_clinic_backend.updateStatus(id, status);
-    if (result) {
-        setSuccess(true);
-        
-        // Directly update the state by filtering the completed appointment
-        const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
-            if (entryId === id) {
-                return [entryId, { ...app, status: "Completed" }];
-            }
-            return [entryId, app];
+        setDoneLoader((prev) => ({
+            ...prev,
+            [id]: true
+        }));
+
+      try {
+        let result = await resma_medical_clinic_backend.updateStatus(id, status);
+        if (result) {
+            setSuccess(true);
+           
+            // Directly update the state by filtering the completed appointment
+            const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
+                if (entryId === id) {
+                    return [entryId, { ...app, status: "Completed" }];
+                }
+                return [entryId, app];
         });
 
         // Set both the main state and the filtered state
@@ -202,13 +311,31 @@ function Appointments() {
         });
 
         setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
-    } else {
-        setFailed(true);
-    }
+        } else {
+            setFailed(true);
+        }
+    }catch (error) {
+            // Show failure message if something goes wrong
+            setFailed('Failed to mark appointment as done.');
+            console.error('Error marking appointment as done:', error);
+        } finally {
+            // Reset loading state for this specific appointment
+            setDoneLoader((prev) => ({
+                ...prev,
+                [id]: false
+            }));
+        }
+    
     };
     
     const markCancelled = async (id) => {
+        setCancelLoader((prev) => ({
+            ...prev,
+            [id]: true
+        }));
         let status = "Cancelled";
+
+        try {
         let result = await resma_medical_clinic_backend.updateStatus(id, status);
         if (result) {
             setSuccess(true);
@@ -236,6 +363,16 @@ function Appointments() {
             setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
         } else {
             setFailed(true);
+        }}catch (error) {
+            // Show failure message if something goes wrong
+            setFailed('Failed to mark appointment as done.');
+            console.error('Error marking appointment as done:', error);
+        } finally {
+            // Reset loading state for this specific appointment
+            setCancelLoader((prev) => ({
+                ...prev,
+                [id]: false
+            }));
         }
     };
     
@@ -247,54 +384,56 @@ function Appointments() {
     const handleRowsPerPageChange = newPerPage => {
         setRowsPerPage(newPerPage);
     };
-        function CustomTabPanel(props) {
-            const { children, value, index, ...other } = props;
+    function CustomTabPanel(props) {
+        const { children, value, index, ...other } = props;
+    
+        return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`simple-tabpanel-${index}`}
+            aria-labelledby={`simple-tab-${index}`}
+            {...other}
+        >
+            {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+        </div>
+        );
+    }
         
-            return (
-            <div
-                role="tabpanel"
-                hidden={value !== index}
-                id={`simple-tabpanel-${index}`}
-                aria-labelledby={`simple-tab-${index}`}
-                {...other}
-            >
-                {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-            </div>
-            );
-        }
+    CustomTabPanel.propTypes = {
+        children: PropTypes.node,
+        index: PropTypes.number.isRequired,
+        value: PropTypes.number.isRequired,
+    };
         
-        CustomTabPanel.propTypes = {
-            children: PropTypes.node,
-            index: PropTypes.number.isRequired,
-            value: PropTypes.number.isRequired,
+    function a11yProps(index) {
+        return {
+        id: `simple-tab-${index}`,
+        'aria-controls': `simple-tabpanel-${index}`,
         };
-        
-        function a11yProps(index) {
-            return {
-            id: `simple-tab-${index}`,
-            'aria-controls': `simple-tabpanel-${index}`,
-            };
+    }
+    const [value, setValue] = React.useState(0);
+    const handleTabChange = (event, newValue) => {
+        setValue(newValue);
+        if (newValue === 0) {
+            setFilteredAppointments(appointmentsEntries); // All
+        } else if (newValue === 1) {
+            const upcomingAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Upcoming');
+            setFilteredAppointments(upcomingAppointments);
+        } else if (newValue === 2) {
+            const completedAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Completed');
+            setFilteredAppointments(completedAppointments);
+        } else if (newValue === 3) {
+            const cancelledAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Cancelled');
+            setFilteredAppointments(cancelledAppointments);
         }
-        const [value, setValue] = React.useState(0);
-        const handleTabChange = (event, newValue) => {
-            setValue(newValue);
-            if (newValue === 0) {
-                setFilteredAppointments(appointmentsEntries); // All
-            } else if (newValue === 1) {
-                const upcomingAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Upcoming');
-                setFilteredAppointments(upcomingAppointments);
-            } else if (newValue === 2) {
-                const completedAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Completed');
-                setFilteredAppointments(completedAppointments);
-            } else if (newValue === 3) {
-                const cancelledAppointments = appointmentsEntries.filter(([id, app]) => app.status === 'Cancelled');
-                setFilteredAppointments(cancelledAppointments);
-            }
-        };
+    };
+      
     return (
-        
         <>
-            <Sidebar />
+           <Sidebar handleLogout={handleLogout} />
+            <div className='ml-64 flex-grow font-poppins p-3'>
+            <h1 className='mt-4  mb-4 px-3 text-2xl font-bold text-[#4673FF]'>APPOINTMENTS</h1>
             <div>
                 <Snackbar
                     open={success}
@@ -313,9 +452,6 @@ function Appointments() {
                      Changes saved successfully!
                     </Alert>
                 </Snackbar>
-                   
-
-                /
             </div>
             <div>
             <Snackbar
@@ -334,98 +470,94 @@ function Appointments() {
                      >
                      Something went wrong!
                     </Alert>
-                </Snackbar>
+            </Snackbar>
             </div>
-            <div className='ml-64 flex-grow font-poppins p-3'>
-            <h1 className='mt-4  mb-4 px-3 text-2xl font-bold '>APPOINTMENTS</h1>
                 <div className="flex w-full">
-               
                     <div className="w-1/2 rounded-xl border-2 border-slate-200 shadow-lg px-3 py-5 relative min-h-72">
-                        <h1 className='mt-5 text-[#014BA8] text-lg font-semibold'>YOUR NEXT APPOINTMENT</h1>
-                        <h1 className='my-3 text-xl font-bold  '>APRIL 10, 2024</h1>
-                        <div className='text-sm my-3 leading-6'>
-                            <p><span className='font-semibold'>Time</span>: 8:00 AM</p>
-                            <p><span className='font-semibold'>Patient</span>: Paola Linsangan</p>
-                            <p><span className='font-semibold'>Purpose</span>: Checkup</p>
-                        </div>
+                        <h1 className='mt-5 text-[#4673FF] text-lg font-semibold'>YOUR NEXT APPOINTMENT</h1>
+
+                        {latestAppointment && (
+                            <>
+                            <h1 className='my-3 text-xl font-bold  '>{formatDate(latestAppointment[1].timestamp)}</h1>
+                            <div className='text-sm my-3 leading-6'>
+                                <p><span className='font-semibold'>Time</span>: {formatTime(latestAppointment[1].timestamp)}</p>
+                                <p><span className='font-semibold'>Patient</span>: {latestAppointment[1].name}</p>
+                                <p><span className='font-semibold'>Purpose</span>: {latestAppointment[1].purpose}</p>
+                            </div>
+                            </>
+
+                        )}
                         <img className="absolute bottom-0 right-0" src={checkup} alt="" width="255px" height="286px" />
                     </div>
                     <div className="ml-2 w-1/2 border-2 border-slate-200 rounded-xl shadow-lg  min-h-72 py-0">
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DateCalendar
-                                sx={{
-                                    width: '100%',          
-                                    backgroundColor: '#fff',  
-                                    borderRadius: '10px',
-                                    
-                                    // Calendar Header (Month and Year)
-                                    '& .MuiPickersCalendarHeader-root': {
-                                        backgroundColor: '#014BA8',
-                                        color: '#fff',
-                                        fontWeight: 'bold',
-                                        fontSize: '1rem',
-                                        width: '100%',
-                                        marginTop: 0,
-                                    },
-
-                                    // Weekday Labels (Mon, Tue, Wed, etc.)
-                                    '& .MuiDayCalendar-weekDayLabel': {
-                                        color: '#014BA8',
-                                        fontSize: '1rem',
-                                        fontWeight: 'bold',
-                                        textAlign: 'center',
-                                        width: 'calc(100% / 7)',
-                                    // Adding border to weekday labels
-                                    },
-
-                                    // Days (Individual Date Cells)
-                                    '& .MuiPickersDay-root': {
-                                        fontSize: '16px',
-                                        color: '#333',
-                                        width: '100px',
-                                        height: '45px',
-                                       
-                                        borderRadius: '0px',
-                                        textAlign:'left',
-                                        margin:0,
-                                 
-                 
-
-                                        '&:hover': {
-                                            backgroundColor: '#014BA8',
-                                            color: '#fff',
-                                        },
-                                        '&.Mui-selected': {
-                                            backgroundColor: '#014BA8',
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DateCalendar
+                                    sx={{
+                                        width: '100%',          
+                                        backgroundColor: '#fff',  
+                                        borderRadius: '10px',
+                                        // Calendar Header (Month and Year)
+                                        '& .MuiPickersCalendarHeader-root': {
+                                            backgroundColor: '#4673FF',
                                             color: '#fff',
                                             fontWeight: 'bold',
+                                            fontSize: '1rem',
+                                            width: '100%',
+                                            marginTop: 0,
+                                        
                                         },
-                                    },
+                                        // Weekday Labels (Mon, Tue, Wed, etc.)
+                                        '& .MuiDayCalendar-weekDayLabel': {
+                                            color: '#4673FF',
+                                            fontSize: '1rem',
+                                            fontWeight: 'bold',
+                                            textAlign: 'center',
+                                            width: 'calc(100% / 7)',
+                                            
+                                        // Adding border to weekday labels
+                                        },
+                                        // Days (Individual Date Cells)
+                                        '& .MuiPickersDay-root': {
+                                            fontSize: '16px',
+                                            color: '#333',
+                                            width: '100px',
+                                            height: '45px',
+                                            borderRadius: '0px',
+                                            textAlign:'left',
+                                            margin:0,
+                                            '&:hover': {
+                                                backgroundColor: '#4673FF',
+                                                color: '#fff',
+                                            },
+                                            '&.Mui-selected': {
+                                                backgroundColor: '#4673FF',
+                                                color: '#fff',
+                                                fontWeight: 'bold',
+                                                border: 'none',
+                                            },
+                                        },
 
-                                    // Highlight "Today"
-                                    '& .MuiPickersDay-today': {
-                                        backgroundColor: '#014BA8',
-                                        border: '1px solid #014BA8',  // Border around today's date
-                                        color: 'white',
-                                    },
+                                        // Highlight "Today"
+                                        '& .MuiPickersDay-today': {
+                                            backgroundColor: '#4673FF',
+                                            border: '2px solid #4673FF',  
+                                            color: 'white',
+                                        },
 
-                                    // Container for the days grid
-                                    '& .MuiDayCalendar-slideTransition': {
-                                        width: '100%',
-                                    },
-                                }}
-                                onChange={handleDateChange}
-                            />
+                                        // Container for the days grid
+                                        '& .MuiDayCalendar-slideTransition': {
+                                            width: '100%',
+                                        },
+                                    }}
+                                    onChange={handleDateChange}
+                                />
                         </LocalizationProvider>
-
-                   
                     </div>
                 </div>
                 <div className='min-h-[550px] mt-3 p-3 border-2 border-slate-200 rounded-2xl shadow-lg'>
                     <div className="flex justify-between items-center">
                         <div>
-                            <p className='text-[#014BA8] text-base font-bold'>APPOINTMENTS</p>
-                     
+                            <p className='text-[#4673FF] text-base font-bold'>APPOINTMENTS</p>
                         </div>
                         <div className='flex justify-between items-center'> 
                         <input
@@ -433,21 +565,21 @@ function Appointments() {
                             placeholder="Search appointments..."
                             value={searchTerm}
                             onChange={handleSearch}
-                            className="rounded-md w-54 p-2.5 border rounded text-xs mr-2 "
+                            className="w-72 text-[12px] pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 "
                         />
-                            <NavLink to='/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#014BA8] text-white font-semibold'>NEW APPOINTMENT</NavLink>
+                            <NavLink to='/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#4673FF] text-white font-semibold transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW APPOINTMENT</NavLink>
                         </div>
                     </div>
                     <div className='mt-3'>
-                    <Box sx={{ width: '100%' }}>
+                    <Box sx={{ width: '100%' }}  >
                         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                            <Tabs value={value} onChange={handleTabChange} aria-label="basic tabs example">
+                            <Tabs value={value} onChange={handleTabChange} aria-label="basic tabs example" className="text-sm">
                             <Tab label="All" {...a11yProps(0)} />
                             <Tab label="Upcoming" {...a11yProps(1)} />
                             <Tab label="Completed" {...a11yProps(2)} />
                             <Tab label="Cancelled" {...a11yProps(3)} />
                             </Tabs>
-                        </Box>
+                    </Box>
                         <CustomTabPanel value={value} index={0}>
                         <DataTable
                             columns={columns}
@@ -458,8 +590,13 @@ function Appointments() {
                             onChangePage={handlePageChange}
                             onChangeRowsPerPage={handleRowsPerPageChange}
                             paginationTotalRows={filteredAppointments.length}
-                            highlightOnHover
+                            
                             customStyles={customStyles}
+                            noDataComponent={
+                                <div className='flex justify-center items-center'>
+                                    <h2 className='text-gray-600 text-sm '>No Records Found</h2>
+                                </div>
+                            }
                         />
                         </CustomTabPanel>
                         <CustomTabPanel value={value} index={1}>
@@ -472,8 +609,13 @@ function Appointments() {
                             onChangePage={handlePageChange}
                             onChangeRowsPerPage={handleRowsPerPageChange}
                             paginationTotalRows={filteredAppointments.length}
-                            highlightOnHover
+                          
                             customStyles={customStyles}
+                            noDataComponent={
+                                <div className='flex justify-center items-center'>
+                                    <h2 className='text-gray-600 text-sm '>No Records Found</h2>
+                                </div>
+                            }
                         />
                         </CustomTabPanel>
                         <CustomTabPanel value={value} index={2}>
@@ -486,8 +628,13 @@ function Appointments() {
                             onChangePage={handlePageChange}
                             onChangeRowsPerPage={handleRowsPerPageChange}
                             paginationTotalRows={filteredAppointments.length}
-                            highlightOnHover
+                          
                             customStyles={customStyles}
+                            noDataComponent={
+                                <div className='flex justify-center items-center'>
+                                    <h2 className='text-gray-600 text-sm '>No Records Found</h2>
+                                </div>
+                            }
                         />
                         </CustomTabPanel>
                         <CustomTabPanel value={value} index={3}>
@@ -500,35 +647,28 @@ function Appointments() {
                             onChangePage={handlePageChange}
                             onChangeRowsPerPage={handleRowsPerPageChange}
                             paginationTotalRows={filteredAppointments.length}
-                            highlightOnHover
+
                             customStyles={customStyles}
+                            noDataComponent={
+                                <div className='flex justify-center items-center'>
+                                    <h2 className='text-gray-600 text-sm '>No Records Found</h2>
+                                </div>
+                            }
                         />
                         </CustomTabPanel>
                         </Box>
-                       
                     </div>
                 </div>
             </div>
             <Modal open={openModal} onClose={handleCloseModal}>
                 <div className="modal-content">
                     <h2>Appointments for {selectedDate}</h2>
-                    {/* {filteredAppointments.length === 0 ? (
-                        <p>No appointments for this date.</p>
-                    ) : (
-                        <ul>
-                            {filteredAppointments.map(appointment => (
-                                <li key={appointment.id}>
-                                    {appointment.name} - {formatTime(appointment.timestamp)} - {appointment.doctor} - {appointment.status}
-                                </li> 
-                            ))}
-                        </ul>
-                    )} */}
-                    <li>Cacho - 10:00 AM</li>
+                  <li>Cacho - 10:00 AM</li>
                     <li>Linsangan - 1:00 PM</li>
                     <li>Gabor - 3:00 PM</li>
                     <button className="bg-blue-700"onClick={handleCloseModal}>Close</button>
                 </div>
-            </Modal>
+            </Modal> 
         </>
     );
 }

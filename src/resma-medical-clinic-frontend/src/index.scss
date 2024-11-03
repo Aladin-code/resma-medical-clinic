@@ -1,3 +1,8 @@
+*{
+  padding: 0;
+  margin:0;
+  box-sizing: border-box;
+}
 body {
   font-family: sans-serif;
   font-size: 1.5rem;
@@ -45,4 +50,8 @@ button[type="submit"] {
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   z-index: 1000;
+}
+.input-placeholder-padding{
+  font-size: 13px;
+  font-color: red;
 }
