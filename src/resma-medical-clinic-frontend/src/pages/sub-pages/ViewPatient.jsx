@@ -72,7 +72,7 @@ function ViewPatient({userInfo}){
     // const formattedDate = "2024-09-26"; 
   // State to store multiple medications
     const [medications, setMedications] = useState([]);
-    const [labResults, setLabResults] = useState([{ result: '', unit: '' }]);
+    const [labResults, setLabResults] = useState([{ result: '', unit: 'mmo/l' },{ result: '', unit: 'mg/dl' }]);
     const [testName, setTestName] = useState('');
 
     let [saveLoader, setSaveLoader] = useState(false);
@@ -89,12 +89,14 @@ function ViewPatient({userInfo}){
 
     const closeLab = () => {
       setLab(false);
-      setLabResults([{ result: '', unit: '' }])
+      setLabResults([{ result: '', unit: 'mmo/l' },{ result: '', unit: 'mg/dl' }])
     }
     // Function to handle adding new result and unit inputs
     const addLabResult = () => {
-      setLabResults([...labResults, { result: '', unit: '' }]);
-     
+      setLabResults([...labResults, 
+        { result: '', unit: '' },
+        { result: '', unit: '' },
+      ]);
     };
 
   // Function to update a specific lab result and unit
@@ -163,8 +165,9 @@ function ViewPatient({userInfo}){
             });
             handleClose(); 
             fetchPatientData();
+            setTestName('');
             setLab(false);
-            setLabResults([{ result: '', unit: '' }])// Close the modal or reset the form if needed
+            setLabResults([{ result: '', unit: 'mmo/l' },{ result: '', unit: 'mg/dl' }])// Close the modal or reset the form if needed
         } else {
             setSuccess(true);
         }
@@ -172,6 +175,9 @@ function ViewPatient({userInfo}){
         console.error('Error submitting laboraotry report:', error);
       }
     }
+
+
+
     const submitReport = async () => {
       setSaveLoader(true);
       const report = {
@@ -525,7 +531,7 @@ function ViewPatient({userInfo}){
                             <img className="border border-slate-300 rounded-full" src={patientImg} alt="150px"  width="150px" height="150px" />
                             <div className='text-center'>
                            
-                            {(user.role === "Secretary")&&(
+                            {(user.role === "Clinic secretary" || user.role === "admin" )&&(
                                  <NavLink to={`/updatePatient/${patient.id}`} className="left-3 text-[#4673FF] text-sm font-semibold">Edit Profile</NavLink>
                             )}
                             </div>
@@ -634,8 +640,8 @@ function ViewPatient({userInfo}){
                 <div className="w-full text-center flex justify-between items-center mb-2">
                     <h1 className='text-[#4673FF] text-lg font-bold'>LABORATORY RESULTS</h1>
                     <div className="text-right">
-                        {(user.role === "Admin" || user.role === "Doctor") && (
-                            <button onClick={addLab} className='bg-[#4673FF] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>
+                        {(user.role === "admin" || user.role === "Doctor") && (
+                            <button onClick={addLab} className='bg-[#4673FF] text-white text-xs font-semibold py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg w-[130px]'>
                                 NEW LAB REPORT
                             </button>
                         )}
@@ -675,17 +681,15 @@ function ViewPatient({userInfo}){
       ) : (
           <div className="text-center text-gray-500"></div> // Message when no results exist
       )}
-            </main>
+    </main>
      
-
-
-                <main className=' mt-5 rounded-xl shadow-lg'>
-                    <section className='flex-grow  border   p-3'>
+                <main className='border-2 mt-5 rounded-xl shadow-lg px-3 pb-3'>
+                    <section className='flex-grow  p-3'>
                         <div className="w-full text-center flex justify-between items-center mb-2">
                             <h1 className='text-[#4673FF] text-lg font-bold '>GENERAL MEDICAL HISTORY</h1>
                             <div className=" text-right">
                             {(user.role === "Admin" || user.role === "Doctor") && (
-                                  <button onClick={addReport} className='bg-[#4673FF] text-white text-xs  font-semibold px-3 py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW REPORT</button>
+                                  <button onClick={addReport} className='bg-[#4673FF] text-white text-xs font-semibold  py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg w-[130px]'>NEW REPORT</button>
                               )}
                             
                             </div>

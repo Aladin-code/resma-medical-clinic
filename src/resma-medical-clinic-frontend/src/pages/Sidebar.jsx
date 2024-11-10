@@ -45,10 +45,19 @@ function Sidebar({handleLogout}) {
                     >
                         <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />APPOINTMENTS
                     </NavLink>
+
+                    <NavLink 
+                        to={"/users" || "/users"} 
+                        className={({ isActive }) => 
+                            `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
+                        }
+                    >
+                        <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />USERS
+                    </NavLink>
                     
                     
                 </div>
-                <div className=" absolute bottom-5 text-center w-full px-4 text-white ">
+                <div className=" absolute bottom-2 text-center w-full px-4 text-white ">
                     <button  className="bg-[#FF6347]  flex items-center text-sm py-3 w-full text-left rounded-xl font-semibold px-3"  onClick={handleLogout}>  <IoLogOut className='mx-1 text-xl hover:bg-red-3 00'/>LOGOUT</button>
                 </div>
                  

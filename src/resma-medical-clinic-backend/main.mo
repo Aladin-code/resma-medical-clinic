@@ -71,34 +71,39 @@ actor ResmaMedicalClinic {
         purpose: Text;
         status: Text;
     };
-    let adminPrincipal: Principal = Principal.fromText("4c5n7-lcy3e-5gcqk-ksbgp-2ihm3-uqopn-weliy-phhft-oho2q-2lryc-kae");
-    let doctorPrincipal: Principal = Principal.fromText("uhcpf-jc6sg-fefyq-6y7ji-5q2df-yl6fc-b6dim-j4sri-x2bv4-xsx5l-3ae");
-    let secretaryPrincipal: Principal = Principal.fromText("f6772-5hh27-jb7u5-hi4nx-lcvbu-legux-cme7o-mtjvk-wfahm-rrtpa-fae");
 
+    type User = {
+        principalID: Principal;
+        name: Text;
+        specialization: Text;
+        role: Text;
+        status: Text;
+    };
 
-public shared func authenticateUser(principal: Principal): async ?{ principal: Principal; name: Text; role: Text } {
-    if (principal == adminPrincipal) {
-        return ?{ principal = principal; name = "Aladin E. Cacho"; role = "Admin" };
-    } else if (principal == doctorPrincipal) {
-        return ?{ principal = principal; name = "Richard Allen Gabor"; role = "Doctor" };
-    } else if (principal == secretaryPrincipal) {
-        return ?{ principal = principal; name = "Paola Ysabel Linsangan"; role = "Secretary" };
-    } else {
-        return null; // No match found, return null
-    }
-};
-
-    // HashMaps to store patients, appointments, and users
+    var users = HashMap.HashMap<Principal, User>(500, Principal.equal, Principal.hash);
+     // HashMaps to store patients, appointments, and users
     var patients = HashMap.HashMap<Text, Patient>(500, Text.equal, Text.hash);
     var appointments = HashMap.HashMap<Text, Appointment>(500, Text.equal, Text.hash);
 
-
-
     stable var patientsList: [(Text, Patient)] = [];
     stable var appointmentsList: [(Text, Appointment)] = [];
-
+    stable var usersList: [(Principal, User)] = [];
     
- 
+     let adminPrincipal: Principal = Principal.fromText("4c5n7-lcy3e-5gcqk-ksbgp-2ihm3-uqopn-weliy-phhft-oho2q-2lryc-kae");
+    // let doctorPrincipal: Principal = Principal.fromText("uhcpf-jc6sg-fefyq-6y7ji-5q2df-yl6fc-b6dim-j4sri-x2bv4-xsx5l-3ae");
+    // let secretaryPrincipal: Principal = Principal.fromText("f6772-5hh27-jb7u5-hi4nx-lcvbu-legux-cme7o-mtjvk-wfahm-rrtpa-fae");
+     let adminUser: User = {
+        principalID = adminPrincipal;
+        name = "Dr. Aladin E. Cacho";  // Replace with actual admin name
+        specialization = "Internist";  // Replace with actual specialization if needed
+        role = "admin";
+        status = "active";
+    };
+    users.put(adminPrincipal, adminUser);
+
+      for ((id, user) in usersList.vals()) {
+        users.put(id, user);
+    }; 
 
     for ((id, patient) in patientsList.vals()) {
         patients.put(id, patient);
@@ -107,9 +112,158 @@ public shared func authenticateUser(principal: Principal): async ?{ principal: P
     for ((id, appointment) in appointmentsList.vals()) {
         appointments.put(id, appointment);
     };
+   
+   public shared func authenticateUser(principalId: Principal): async Text {
+    switch (users.get(principalId)) {
+        case (?user) {
+            if (user.status == "active") {
+                return "User is active.";
+            } else {
+                return "User is registered but inactive.";
+            }
+        };
+        case null {
+            return "User not found. Please register.";
+        };
+    }
+};
+
+public shared func registerUser(principalId: Principal, name: Text, specialization: Text, role: Text, status: Text): async Text {
+            let newUser: User = {
+                principalID = principalId;
+                name = name;
+                specialization = specialization;
+                role = role;
+                status = status; // Set default status to inactive
+            };
+            users.put(principalId, newUser);
+             usersList := Array.filter(usersList, func(entry: (Principal, User)) : Bool {
+                let (pid, _) = entry;
+                pid != principalId;
+            });
+            usersList := Array.append(usersList, [(principalId, newUser)]);
+            return "User registered but inactive.";
+};
+
+    public shared func getAuthenticatedUser(principalId: Principal): async ?User {
+        switch(users.get(principalId)) {
+            case (?user) {
+                // If user exists, return the user details
+                return ?user;
+            };
+            case null {
+                // If user does not exist, return null
+                return null;
+            };
+        }
+    };
+    public shared func getAllDoctors(): async [User] {
+        var activeUsers: [User] = [];
+
+        for ((_, user) in users.entries()) {
+            if (user.status == "active") {
+                activeUsers := Array.append<User>(activeUsers, [user]);
+            }
+        };
+        return activeUsers;
+    };
+     public shared func getAllUsers(): async [User] {
+        var activeUsers: [User] = [];
+
+        for ((_, user) in users.entries()) {
+            
+                activeUsers := Array.append<User>(activeUsers, [user]);
+            
+        };
+        return activeUsers;
+    };
+
+    // public shared func authenticateUser(principal: Principal): async ?{ principal: Principal; name: Text; role: Text } {
+    //     if (principal == doctor1Principal) {
+    //         return ?{ principal = principal; name = "Dr. Aladin E. Cacho"; role = "Doctor" };
+    //     } else if (principal == doctorPrincipal) {
+    //         return ?{ principal = principal; name = "Dr. Richard Allen Gabor"; role = "Doctor" };
+    //     } else if (principal == secretaryPrincipal) {
+    //         return ?{ principal = principal; name = "Sec. Paola Ysabel Linsangan"; role = "Clinic secretary" };
+    //     } else {
+    //         return null; // No match found, return null
+    //     }
+    // };
+    
+    // // Function to fetch all doctors based on principals
+    // public query func getAllDoctors(): async [{ principal: Principal; name: Text }] {
+    //     var doctors: [{ principal: Principal; name: Text }] = [];
+
+    //     // Since doctorPrincipal is defined as a valid Principal, you don't need a null check.
+    //     doctors := Array.append(doctors, [{ principal = doctorPrincipal; name = "Dr. Richard Allen Gabor" }]);
+    //     doctors := Array.append(doctors, [{ principal = doctor1Principal; name = "Dr. Aladin E. Cacho" }]);
+       
+    //     return doctors;
+    // };
 
 
-    // Function to add a new patient
+  // Function to update an existing patient
+public func updatePatient(
+    id: Text, 
+    lastName: Text,
+    firstName: Text,
+    middleName: Text,
+    extName: Text,
+    dateOfBirth: Text, 
+    gender: Text, 
+    address: Text, 
+    contact: Text, 
+    height: Text, 
+    weight: Text, 
+    emergencyContact: EmergencyContact,
+    registrationDate: Text,
+    reports: Report,
+    laboratory: Laboratory,
+    checkups: Checkup
+): async Bool {
+
+    // Validation: If reports, laboratory, or checkups are empty, assign empty arrays
+    let reportArray: [Report] = if (reports.date == "") { [] } else { [reports] };
+    let laboratoryArray: [Laboratory] = if (laboratory.test.testName == "") { [] } else { [laboratory] };
+    let checkupArray: [Checkup] = if (checkups.date == 0) { [] } else { [checkups] };
+
+    // Create the updated patient object
+    let patient: Patient = {
+        id = id;
+        lastName = lastName;
+        firstName = firstName;
+        middleName = middleName;
+        extName = extName;
+        dateOfBirth = dateOfBirth;
+        gender = gender;
+        address = address;
+        contact = contact;
+        height = height;
+        weight = weight;
+        emergencyContact = emergencyContact;
+        registrationDate = registrationDate;
+        reports = reportArray;
+        laboratory = laboratoryArray;
+        checkups = checkupArray;
+    };
+
+    // Update the patient in the HashMap
+    patients.put(id, patient);
+
+    // Filter out the old patient record from the patientsList
+    patientsList := Array.filter(patientsList, func(entry: (Text, Patient)) : Bool {
+        let (pid, _) = entry;
+        pid != id;
+    });
+
+    // Add the updated patient to the patientsList
+    patientsList := Array.append(patientsList, [(id, patient)]);
+
+    return true;
+};
+
+
+      // Function to add a new patient
     public func addPatient(
         id: Text, 
         lastName: Text,
@@ -159,7 +313,6 @@ public shared func authenticateUser(principal: Principal): async ?{ principal: P
 
         return true;
     };
-
 
     // Function to get all patients
     public query func getAllPatients(): async [(Text, Patient)] {
@@ -392,6 +545,18 @@ public func deleteAllAppointments(): async Bool {
     return true;
 };
 
+// Function to delete all appointments
+public func deleteAllUsers(): async Bool {
+    // Reinitialize the appointments HashMap
+    users := HashMap.HashMap<Principal, User>(500, Principal.equal, Principal.hash);
+    // Clear the stable appointmentsList
+    usersList := [];
+    
+    return true;
+};
 
-   
+public func initializeAdmin(): async Bool{
+      users.put(adminPrincipal, adminUser);
+       return true;
+}
 };

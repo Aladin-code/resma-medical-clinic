@@ -9,10 +9,14 @@ import { FaCalendarCheck } from "react-icons/fa";
 import { MdEditCalendar } from "react-icons/md";
 import { MdCancelPresentation } from "react-icons/md";
 import Tooltip from '@mui/material/Tooltip';
+
+import { DateCalendar, PickersDay } from '@mui/x-date-pickers'; // Correct imports
+import Badge from '@mui/material/Badge'; // Correct Badge import
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import Badge from '@mui/material/Badge';
+import dayjs from 'dayjs';
+
+
 import { Modal } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -22,7 +26,40 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import MoonLoader from "react-spinners/ClipLoader";
 import { useLocation } from 'react-router-dom';
+import { IoMdClose } from "react-icons/io";
 
+function CustomDay(props) {
+    const { day, outsideCurrentMonth, ...other } = props;
+    const dayjsDay = day.startOf('day'); // Normalize the day to compare
+  
+    // Check if the current day has an appointment
+    const dateHasAppointment = filteredAppointments.some(
+      (appointment) => {
+        const appointmentDate = dayjs(appointment.timestamp).startOf('day');
+        return dayjsDay.isSame(appointmentDate); // Compare the normalized dates
+      }
+    );
+  
+    return (
+      <div className="relative">
+        <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
+        {dateHasAppointment && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#FFCC00', // Highlight days with appointments
+              borderRadius: '50%',
+              zIndex: 1,
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 function Appointments({userInfo, handleLogout}) {
     const [appointmentsEntries, setAppointmentsEntries] = useState([]);
     const [filteredAppointments, setFilteredAppointments] = useState([]);
@@ -41,6 +78,9 @@ function Appointments({userInfo, handleLogout}) {
 
     const location = useLocation();
     const [openSnackbar, setOpenSnackbar] = useState(false);
+    const user = userInfo[0];
+    const username = user.name;
+    const role = user.role;
 
     useEffect(() => {
         if (location.state?.success) {
@@ -53,11 +93,13 @@ function Appointments({userInfo, handleLogout}) {
     useEffect(() => {
         console.log('userInfo:', userInfo);
       }, [userInfo]);
+
+      useEffect(() => {
+        fetchAllAppointments(role, username);
+    }, []);
     
-      if (userInfo.length === 0) {
-        return <div>Loading user information...</div>;
-      }
-      const user = userInfo[0];
+  
+    
 
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') {
@@ -102,29 +144,54 @@ function Appointments({userInfo, handleLogout}) {
         }
     };// De rows per page
 
-    const fetchAllAppointments = async () => {
-        const allAppointments = await resma_medical_clinic_backend.getAllAppointments();
-        
-        // Sort appointments by date, from soonest to latest
-        const sortedAppointments = allAppointments.sort(([idA, appA], [idB, appB]) => {
-            return Number(appA.timestamp) - Number(appB.timestamp);
-        });
+    const fetchAllAppointments = async (userRole, doctorName) => {
+        try {
+            const allAppointments = await resma_medical_clinic_backend.getAllAppointments();
+            
+            if (!Array.isArray(allAppointments)) {
+                console.error('Expected an array from API, received:', allAppointments);
+                return; // Exit the function if data isn't an array
+            }
+            
+            // Sort appointments by date, from soonest to latest
+            const sortedAppointments = allAppointments.sort(([idA, appA], [idB, appB]) => {
+                return Number(appA.timestamp) - Number(appB.timestamp);
+            });
     
-        setAppointmentsEntries(sortedAppointments);
-        setFilteredAppointments(sortedAppointments); // Initialize with all appointments
+            let filteredAppointments = [];
     
-        // Find the earliest upcoming appointment
-        const upcomingAppointments = sortedAppointments.filter(([id, app]) => app.status === "Upcoming");
-        const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
-        setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+            // Check if the user is a secretary or doctor
+            if (userRole === 'Clinic secretary') {
+                // Secretary: show all appointments
+                filteredAppointments = sortedAppointments;
+            } else if (userRole === 'admin' || userRole === 'Doctor') {
+                // Doctor: show only appointments where the doctor's name matches
+                filteredAppointments = sortedAppointments.filter(([id, app]) => app.doctor === doctorName);
+            }
+    
+            setAppointmentsEntries(filteredAppointments);
+            setFilteredAppointments(filteredAppointments); // Initialize with all appointments
+            
+            // Find the earliest upcoming appointment
+            const upcomingAppointments = filteredAppointments.filter(([id, app]) => app.status === "Upcoming");
+            const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+            setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+
+      
+             
+             
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+        }
     };
+    
+
+    
     
      // Handle tab changes to filter appointments based on tab selection
     
      const [latestAppointment, setLatestAppointment] = useState(null);
-    useEffect(() => {
-        fetchAllAppointments();
-    }, []);
+      
 
     const formatDate = (timestamp) => {
         const date = new Date(Number(timestamp));
@@ -160,12 +227,33 @@ function Appointments({userInfo, handleLogout}) {
         setFilteredAppointments(filteredData);
     };
 
+    const [appointmentsByDate, setByDate] = useState([]);
     const handleDateChange = (newDate) => {
+        // Convert newDate to Unix timestamp (at the start of the day) to compare only the date
+        const selectedTimestampStartOfDay = newDate.startOf('day').valueOf(); // Get Unix timestamp in milliseconds
+    
+        // Set the formatted date for display (optional)
         const formattedDate = newDate.format('MMMM D, YYYY');
         setSelectedDate(formattedDate);
-        // filterAppointments(searchTerm, formattedDate);
-        setOpenModal(true);  // Open modal when a date is selected
+    
+        // Open modal when a date is selected
+        setOpenModal(true);
+    
+        // Filter appointments by selected date (comparing start of the day timestamps)
+        const appByDate = filteredAppointments.filter(([id, app]) => {
+            // Convert BigInt to Number if needed
+            const appTimestamp = typeof app.timestamp === 'bigint' ? Number(app.timestamp) : app.timestamp;
+    
+            const appDateStartOfDay = new Date(appTimestamp).setHours(0, 0, 0, 0);  // Reset hours to get only the date part
+            return appDateStartOfDay === selectedTimestampStartOfDay;
+        });
+    
+        setByDate(appByDate);
+        console.log('Appointments', appByDate);
     };
+    
+
+    
 
     const handleCloseModal = () => {
         setOpenModal(false);
@@ -221,7 +309,7 @@ function Appointments({userInfo, handleLogout}) {
         ),
         sortable: true,
     },
-    ...(user.role === "Admin" || user.role === "Secretary" ? [{
+    ...(user.role === "admin" || user.role === "Clinic secretary" ? [{
         name: 'Actions',  // Always include the Actions column
         cell: row => (
             <>
@@ -428,17 +516,17 @@ function Appointments({userInfo, handleLogout}) {
             setFilteredAppointments(cancelledAppointments);
         }
     };
-      
+    
+   
+    
     return (
         <>
            <Sidebar handleLogout={handleLogout} />
             <div className='ml-64 flex-grow font-poppins p-3'>
             <h1 className='mt-4  mb-4 px-3 text-2xl font-bold text-[#4673FF]'>APPOINTMENTS</h1>
             <div>
-            </div>
-            <div>
-            <Snackbar
-                    open={failed}
+                <Snackbar
+                    open={success}
                     autoHideDuration={3000}
                     message=""
                     onClose={handleClose}
@@ -447,13 +535,32 @@ function Appointments({userInfo, handleLogout}) {
                    >
                      <Alert
                         onClose={handleClose}
-                        severity="error"
+                        severity="success"
                         variant="filled"
                         sx={{ width: '100%' }}
                      >
-                     Something went wrong!
+                     Changes saved successfully!
                     </Alert>
-            </Snackbar>
+                </Snackbar>
+            </div>
+            <div>
+                <Snackbar
+                        open={failed}
+                        autoHideDuration={3000}
+                        message=""
+                        onClose={handleClose}
+                        anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
+                        key={`${vertical}${horizontal}`}
+                        >
+                            <Alert
+                            onClose={handleClose}
+                            severity="error"
+                            variant="filled"
+                            sx={{ width: '100%' }}
+                            >
+                            Something went wrong!
+                        </Alert>
+                </Snackbar>
             </div>
                 <div className="flex w-full">
                     <div className="w-1/2 rounded-xl border-2 border-slate-200 shadow-lg px-3 py-5 relative min-h-72">
@@ -473,71 +580,154 @@ function Appointments({userInfo, handleLogout}) {
                         <img className="absolute bottom-0 right-0" src={checkup} alt="" width="255px" height="286px" />
                     </div>
                     <div className="ml-2 w-1/2 border-2 border-slate-200 rounded-xl shadow-lg  min-h-72 py-0">
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DateCalendar
-                                    sx={{
-                                        width: '100%',          
-                                        backgroundColor: '#fff',  
-                                        borderRadius: '10px',
-                                        // Calendar Header (Month and Year)
-                                        '& .MuiPickersCalendarHeader-root': {
-                                            backgroundColor: '#4673FF',
-                                            color: '#fff',
-                                            fontWeight: 'bold',
-                                            fontSize: '1rem',
-                                            width: '100%',
-                                            marginTop: 0,
-                                        
-                                        },
-                                        // Weekday Labels (Mon, Tue, Wed, etc.)
-                                        '& .MuiDayCalendar-weekDayLabel': {
-                                            color: '#4673FF',
-                                            fontSize: '1rem',
-                                            fontWeight: 'bold',
-                                            textAlign: 'center',
-                                            width: 'calc(100% / 7)',
-                                            
-                                        // Adding border to weekday labels
-                                        },
-                                        // Days (Individual Date Cells)
-                                        '& .MuiPickersDay-root': {
-                                            fontSize: '16px',
-                                            color: '#333',
-                                            width: '100px',
-                                            height: '45px',
-                                            borderRadius: '0px',
-                                            textAlign:'left',
-                                            margin:0,
-                                            '&:hover': {
-                                                backgroundColor: '#4673FF',
-                                                color: '#fff',
-                                            },
-                                            '&.Mui-selected': {
-                                                backgroundColor: '#4673FF',
-                                                color: '#fff',
-                                                fontWeight: 'bold',
-                                                border: 'none',
-                                            },
-                                        },
+                    {/* <LocalizationProvider dateAdapter={AdapterDayjs}>
+  <DateCalendar
+    sx={{
+      width: '100%',
+      backgroundColor: '#fff',
+      borderRadius: '10px',
+      '& .MuiPickersCalendarHeader-root': {
+        backgroundColor: '#4673FF',
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: '1rem',
+        width: '100%',
+        marginTop: 0,
+      },
+      '& .MuiDayCalendar-weekDayLabel': {
+        color: '#4673FF',
+        fontSize: '1rem',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        width: 'calc(100% / 7)',
+      },
+      '& .MuiPickersDay-root': {
+        fontSize: '16px',
+        color: '#333',
+        width: '100px',
+        height: '45px',
+        borderRadius: '0px',
+        textAlign: 'left',
+        margin: 0,
+        '&:hover': {
+          backgroundColor: '#4673FF',
+          color: '#fff',
+        },
+        '&.Mui-selected': {
+          backgroundColor: '#4673FF',
+          color: '#fff',
+          fontWeight: 'bold',
+          border: 'none',
+        },
+        // Apply background color based on appointments
+        backgroundColor: (date) => {
+            // Use the current date as fallback if date is invalid
+            const validDate = dayjs(date).isValid() ? dayjs(date) : dayjs();  // Default to today's date if invalid
+        
+            const currentDayDate = validDate.startOf('day').toDate();
+            const currentUnixTimestampAtMidnight = Math.floor(currentDayDate.getTime() / 1000);
+        
+            console.log('Current Day (Midnight Unix Timestamp):', currentUnixTimestampAtMidnight);
+            console.log('Current date', currentDayDate);
+            console.log(filteredAppointments);
+            const dayAppointments = filteredAppointments.filter(appointment => {
+                const appointmentDateAtMidnight = appointment.timestamp;
+                console.log('ppointment date', appointmentDateAtMidnight)
+                return currentUnixTimestampAtMidnight === appointmentDateAtMidnight;
+            });
+        
+            if (dayAppointments.length > 0) {
+                return '#FFD700'; // Yellow for days with appointments
+            } else {
+                return '#fff'; // White for days without appointments
+            }
+        }
+        
+        
+        
+        
+        
+        
+        
+          
+      },
+      '& .MuiPickersDay-today': {
+        backgroundColor: '#4673FF',
+        border: '2px solid #4673FF',
+        color: 'white',
+      },
+      '& .MuiDayCalendar-slideTransition': {
+        width: '100%',
+      },
+    }}
+    onChange={handleDateChange}
+  />
+</LocalizationProvider> */}
 
-                                        // Highlight "Today"
-                                        '& .MuiPickersDay-today': {
-                                            backgroundColor: '#4673FF',
-                                            border: '2px solid #4673FF',  
-                                            color: 'white',
-                                        },
 
-                                        // Container for the days grid
-                                        '& .MuiDayCalendar-slideTransition': {
-                                            width: '100%',
-                                        },
-                                    }}
-                                    onChange={handleDateChange}
-                                />
-                        </LocalizationProvider>
+
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DateCalendar
+                            sx={{
+                            width: '100%',
+                            backgroundColor: '#fff',
+                            borderRadius: '10px',
+                            '& .MuiPickersCalendarHeader-root': {
+                                backgroundColor: '#4673FF',
+                                color: '#fff',
+                                fontWeight: 'bold',
+                                fontSize: '1rem',
+                                width: '100%',
+                                marginTop: 0,
+                            },
+                            '& .MuiDayCalendar-weekDayLabel': {
+                                color: '#4673FF',
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                width: 'calc(100% / 7)',
+                            },
+                            '& .MuiPickersDay-root': {
+                                fontSize: '16px',
+                                color: '#333',
+                                width: '100px',
+                                height: '45px',
+                                borderRadius: '0px',
+                                textAlign: 'left',
+                                margin: 0,
+                                '&:hover': {
+                                backgroundColor: '#4673FF',
+                                color: '#fff',
+                                },
+                                '&.Mui-selected': {
+                                backgroundColor: '#4673FF',
+                                color: '#fff',
+                                fontWeight: 'bold',
+                                border: 'none',
+                                },
+                            },
+                            '& .MuiPickersDay-today': {
+                                backgroundColor: '#4673FF',
+                                border: '2px solid #4673FF',
+                                color: 'white',
+                            },
+                            '& .MuiDayCalendar-slideTransition': {
+                                width: '100%',
+                            },
+                            }}
+                        
+                            onChange={handleDateChange}
+                        />
+                    </LocalizationProvider>
+
+
+
+
+
+
                     </div>
                 </div>
-                <div className='min-h-[550px] mt-3 p-3 border-2 border-slate-200 rounded-2xl shadow-lg'>
+                <div className=' mt-3 p-3 border-2 border-slate-200 rounded-2xl shadow-lg'>
                     <div className="flex justify-between items-center">
                         <div>
                             <p className='text-[#4673FF] text-base font-bold'>APPOINTMENTS</p>
@@ -550,7 +740,10 @@ function Appointments({userInfo, handleLogout}) {
                             onChange={handleSearch}
                             className="w-72 text-[12px] pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 "
                         />
-                            <NavLink to='/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#4673FF] text-white font-semibold transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW APPOINTMENT</NavLink>
+                            
+                            {(user.role === "admin" || user.role === "Clinic secretary") && (
+                               <NavLink to='/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#4673FF] text-white font-semibold transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW APPOINTMENT</NavLink>
+                              )}
                         </div>
                     </div>
                     <div className='mt-3'>
@@ -644,14 +837,51 @@ function Appointments({userInfo, handleLogout}) {
                 </div>
             </div>
             <Modal open={openModal} onClose={handleCloseModal}>
-                <div className="modal-content">
-                    <h2>Appointments for {selectedDate}</h2>
-                  <li>Cacho - 10:00 AM</li>
-                    <li>Linsangan - 1:00 PM</li>
-                    <li>Gabor - 3:00 PM</li>
-                    <button className="bg-blue-700"onClick={handleCloseModal}>Close</button>
+                <div className="modal-content w-[450px] border">
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className='font-semibold text-lg '>Appointment Schedules</h2>
+                        <button className=" text-[#858796]  py-1 text-2xl font-bold rounded" onClick={handleCloseModal}> 
+                            <IoMdClose />
+                        </button>
+                    </div>
+
+                    <hr></hr>
+
+                    <div className='mb-5 bg-[#4673FF]   flex flex-col justify-center  text-white px-4 mt-3 shadow-xl '>
+                        <p className='text-[100px] w-full text-center font-[900]'>
+                            {new Date(selectedDate).getDate()} {/* Day of the month (e.g., "5") */}
+                        </p>
+                        <p className='text- mt-[-35px] mb-5 uppercase w-full text-center  tracking-[10px] font-thin'>
+                            {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })} {/* Day of the week (e.g., "Tuesday") */}
+                        </p>
+                    </div>
+
+
+                    <p className='text-base text-[#858796] font-semibold'>Upcoming Appointments</p>
+
+                    <div className="px-4">
+                        {appointmentsByDate.length > 0 ? (
+                            appointmentsByDate.map(([id, appointment]) => (
+                                <div key={id} className="flex items-start space-x-3 mt-2">
+                                    <div className="mt-2 w-3 h-3 bg-[#97BDFF] rounded-full border"></div>
+                                    <div>
+                                        {/* Format the timestamp to a readable time */}
+                                        <p className="text-sm font-[550] ">
+                                            {new Date(Number(appointment.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                        <p className="text-[#858796] text-sm">
+                                            {appointment.purpose} - {appointment.name}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="w-full mt-5 mb-5 text-center text-[#858796] text-sm">No appointments for the selected date.</p>
+                        )}
+                    </div>
                 </div>
-            </Modal> 
+            </Modal>
+
         </>
     );
 }

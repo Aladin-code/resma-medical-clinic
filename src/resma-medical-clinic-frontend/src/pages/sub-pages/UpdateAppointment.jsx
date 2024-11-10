@@ -5,6 +5,8 @@ import Sidebar from '../Sidebar';
 import { IoIosArrowBack } from "react-icons/io";
 import { NavLink, useNavigate } from 'react-router-dom';
 import MoonLoader from "react-spinners/ClipLoader";
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 function UpdateAppointment() {
     const navigate = useNavigate();
@@ -16,6 +18,9 @@ function UpdateAppointment() {
     const [patients, setPatients] = useState([]);
     const [filteredPatients, setFilteredPatients] = useState([]);
     let [color, setColor] = useState("#fff");
+    const [appointmentFailed, setAppFailed] = useState(false);
+    const [vertical, setVertical] = useState('top'); // Default vertical position
+    const [horizontal, setHorizontal] = useState('right');
     const [appointment, setAppointment] = useState({
         id: '',
         name: '',
@@ -23,7 +28,14 @@ function UpdateAppointment() {
         purpose: '',
         status: 'Upcoming'
     });
-
+     
+    const handleClose = (event, reason) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+    
+        setAppFailed(false)
+      };
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setAppointment({
@@ -64,8 +76,15 @@ function UpdateAppointment() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+           // Check for undefined values
+       
+    
         const dateTimeString = `${date}T${time}:00`; // Combine date and time to create a full datetime string
         const timestamp = new Date(dateTimeString).getTime(); // Convert to Unix timestamp
+        if (!date || !time || !selectedPatientID || !appointment.doctor || !appointment.purpose) {
+            setAppFailed(true); // Show error if any required field is missing
+            return;
+        }
         setSaveLoader(true);
         try {
             const result = await resma_medical_clinic_backend.addAppointment(
@@ -127,6 +146,23 @@ function UpdateAppointment() {
     return (
         <>
             <Sidebar />
+            <Snackbar
+                    open={appointmentFailed}
+                    autoHideDuration={3000}
+                    message=""
+                    onClose={handleClose}
+                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
+                    key={`${vertical}${horizontal}`}
+                   >
+                     <Alert
+                        onClose={handleClose}
+                        severity="error"
+                        variant="filled"
+                        sx={{ width: '100%' }}
+                     >
+                    Please fill in all fields.
+                    </Alert>
+            </Snackbar>
             <div className='ml-64 flex-grow font-poppins p-3'>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>

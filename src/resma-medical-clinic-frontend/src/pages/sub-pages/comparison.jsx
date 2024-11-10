@@ -33,7 +33,7 @@ function Comparison({ data }) {
             {/* Before comparison box */}
             <div className="w-1/2 mx-1 text-white text-sm rounded-xl shadow-xl">
                 <h5 className='w-full text-center rounded-tl-xl rounded-tr-xl bg-[#4673FF] py-1'>
-                    Before: {formatDate(prevTest.test.date)}
+                    Previous: {formatDate(prevTest.test.date)}
                 </h5> 
                 <div className="flex text-[#4673FF] font-bold text-base mt-3">
                     <h1 className='w-1/2 pl-[100px] text-left'>mmol/l</h1>
@@ -50,7 +50,7 @@ function Comparison({ data }) {
             {/* After comparison box */}
             <div className="w-1/2 mx-1 text-white text-sm rounded-xl shadow-xl">
                 <h5 className='w-full text-center rounded-tl-xl rounded-tr-xl bg-[#4673FF] py-1'>
-                    After: {formatDate(currentTest.test.date)}
+                    Latest: {formatDate(currentTest.test.date)}
                 </h5>
                 <div className="flex text-[#4673FF] font-bold text-base mt-3">
                     <h1 className='w-1/2 pl-[100px] text-left'>mmol/l</h1>

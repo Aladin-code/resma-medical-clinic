@@ -1,5 +1,5 @@
 import Sidebar from '../Sidebar';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { resma_medical_clinic_backend } from 'declarations/resma-medical-clinic-backend';
 import { IoIosArrowBack } from "react-icons/io";
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ function AddAppointment() {
     const [saveLoader, setSaveLoader] = useState(false);
     const [success, setSuccess] = useState(false);
     const [failed, setFailed] = useState(false);
+    const [appointmentFailed, setAppFailed] = useState(false);
     const [vertical, setVertical] = useState('top'); // Default vertical position
     const [horizontal, setHorizontal] = useState('right');
     const [appointment, setAppointment] = useState({
@@ -56,6 +57,7 @@ function AddAppointment() {
     
         setSuccess(false);
         setFailed(false)
+        setAppFailed(false)
       };
 
     const handleInputChange = (e) => {
@@ -65,36 +67,52 @@ function AddAppointment() {
         });
     };
 
+    const [isPatientSelected, setIsPatientSelected] = useState(false); // State to track if a patient has been selected
+
+    // Handle patient selection
+    const handlePatientSelect = (patient) => {
+        setAppointment((prevAppointment) => ({
+            ...prevAppointment,
+            name: `${patient.firstName} ${patient.lastName}` // Set full patient name in input
+        }));
+        setSelectedPatientID(patient.id); // Store selected patient's ID
+        setFilteredPatients([]); // Clear the filtered list after selection
+        setIsPatientSelected(true); // Mark patient as selected
+    };
+    
+    // Modify patient search logic to reset the selected state when typing
     const handlePatientSearch = (e) => {
         const searchTerm = e.target.value;
         setAppointment({
             ...appointment,
             name: searchTerm
         });
+        setIsPatientSelected(false); // Reset patient selection when user types
+    
         if (searchTerm === "") {
-            setFilteredPatients([]); 
+            setFilteredPatients(patients.slice(0, 10)); // Show first 10 patients if input is empty
         } else {
             const filteredData = patients.filter(([id, patient]) => {
-                const firstName = patient.firstName.toLowerCase();
-                const lastName = patient.lastName.toLowerCase();  
-                const value = searchTerm.toLowerCase();
-                return (
-                    firstName.includes(value) ||
-                    lastName.includes(value) 
-                );
+                const fullName = `${patient.firstName.toLowerCase()} ${patient.lastName.toLowerCase()}`;
+                return fullName.includes(searchTerm.toLowerCase());
             });
-            setFilteredPatients(filteredData);
+            
+            if (filteredData.length === 0) {
+                setFilteredPatients([]); // No match found
+            } else {
+                setFilteredPatients(filteredData); // Matches found
+            }
         }
     };
-
-    const handlePatientSelect = (patient) => {
-        setAppointment((prevAppointment) => ({
-            ...prevAppointment,
-            name: patient.firstName + " " + patient.lastName // Update the name of the patient in the appointment
-        }));
-        setSelectedPatientID(patient.id); // Store the selected patient's ID
-        setFilteredPatients([]); // Clear the filtered list after selection
+    const [showPatientsList, setShowPatientsList] = useState(false);
+    const inputRef = useRef(null); // Reference for the input field
+    const handleInputFocus = () => {
+        if (appointment.name === "") {
+            setFilteredPatients(patients.slice(0, 10));
+        }
+        setShowPatientsList(true); // Show patients list when input is focused
     };
+   
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -109,7 +127,7 @@ function AddAppointment() {
         // Check for undefined values
         if (!newID || !timestamp || !selectedPatientID || !appointment.doctor || !appointment.purpose) {
             console.error("One or more arguments are undefined");
-            alert("Please fill in all fields.");
+            setAppFailed(true);
             return;
         }
         setSaveLoader(true);
@@ -143,13 +161,31 @@ function AddAppointment() {
         }
     };
     
-   
+    const [doctors, setDoctors] = useState([]); // New state to store doctors
     useEffect(() => {
         async function fetchPatients() {
             const patientList = await resma_medical_clinic_backend.getAllPatients();
             setPatients(patientList);
         }
+        async function fetchDoctors() {
+            const doctors = await resma_medical_clinic_backend.getAllDoctors();
+            setDoctors(doctors); // Assuming you have a setDoctors function to set the state for your dropdown
+        }
+
+        
         fetchPatients();
+        fetchDoctors();
+        console.log(doctors);
+
+        const handleClickOutside = (event) => {
+            if (inputRef.current && !inputRef.current.contains(event.target)) {
+                setShowPatientsList(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, []);
     let [color, setColor] = useState("#fff");
     return (
@@ -190,7 +226,24 @@ function AddAppointment() {
                      Something went wrong!
                     </Alert>
             </Snackbar>
-            <div className='ml-64 flex-grow font-poppins p-3'>
+            <Snackbar
+                    open={appointmentFailed}
+                    autoHideDuration={3000}
+                    message=""
+                    onClose={handleClose}
+                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
+                    key={`${vertical}${horizontal}`}
+                   >
+                     <Alert
+                        onClose={handleClose}
+                        severity="error"
+                        variant="filled"
+                        sx={{ width: '100%' }}
+                     >
+                    Please fill in all fields.
+                    </Alert>
+            </Snackbar>
+            <div className='ml-64 flex-grow font-poppins p-3 max-h-screen '>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
                         <NavLink to="/appointments" className="fw-32 font-semibold text-xl text-[#A9A9A9] hover:text-[#4673FF]">APPOINTMENTS</NavLink>
@@ -210,38 +263,47 @@ function AddAppointment() {
                     </div>
                 </div>
                 
-                <div className="h-screen relative">
+                <div className=" relative">
                     <div className='w-full bg-[#4673FF] rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base'>Appointment Details </div>
-                    <form className="form px-6" onSubmit={handleSubmit}>
+                    <form className="form " onSubmit={handleSubmit}>
                         <div className='w-full text-sm '>
                         <div className='w-full flex px-7 py-1 mt-3'>
-                                <div className='w-1/2 mr-4'>
+                                <div className='w-1/2 mr-4 relative ' ref={inputRef}>
                                     <div className="flex justify-between">
                                     <label className='mr-1 font-semibold text-black'>Name of Patient<span className='text-[red]'>*</span></label>
-                                    <NavLink to="/AddPatient" className="text-[#4673FF]" >Not on the list? Register here</NavLink>
+                                   
                                     </div>
                                     
                                     <input
-                                        className="mt-2 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
-                                        type="text"
-                                        name="name"
-                                        value={appointment.name}
-                                        onChange={handlePatientSearch}
-                                        placeholder='Search patient...'
-                                    />  
-                                    {filteredPatients.length > 0 && (
-                                        <ul className="border border-gray-300 mt-1 max-h-40 overflow-y-auto">
-                                            {filteredPatients.map(([id, patient]) => (
-                                                <li
-                                                    key={patient.id}
-                                                    className="cursor-pointer py-1 px-2 hover:bg-gray-100"
-                                                    onClick={() => handlePatientSelect(patient)}
-                                                >
-                                                    {patient.firstName} {patient.lastName}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+        className="mt-2 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
+        type="text"
+        name="name"
+        value={appointment.name}
+        onChange={handlePatientSearch}
+        onFocus={handleInputFocus} // Trigger patients list when input is focused
+        placeholder='Search patient...'
+    />
+
+    {/* Show error only when no match is found AND no valid patient is selected */}
+    {!isPatientSelected && filteredPatients.length === 0 && appointment.name !== "" && (
+        <p className="text-red-500 mt-2">
+            No patients found. Please check the name or <NavLink to="/AddPatient" className="text-[#4673FF]">Register here</NavLink>.
+        </p>
+    )}
+
+    {showPatientsList && filteredPatients.length > 0 && (
+        <ul className="border border-gray-300 mt-1 max-h-40 overflow-y-auto rounded absolute top-15 w-full bg-white z-10">
+            {filteredPatients.map(([id, patient]) => (
+                <li
+                    key={patient.id}
+                    className="cursor-pointer py-1 px-2 hover:bg-gray-100"
+                    onClick={() => handlePatientSelect(patient)}
+                >
+                    {patient.firstName} {patient.lastName}
+                </li>
+            ))}
+        </ul>
+    )}
                                  
                                 </div>
                                 <div className='w-1/2 mr-4'>
@@ -281,13 +343,19 @@ function AddAppointment() {
                             <div className='w-full flex px-7 py-1 mt-3'>
                                 <div className='w-1/2 mr-4'>
                                     <label className='mr-1 font-semibold text-black'>Doctor in Charge<span className='text-[red]'>*</span></label>
-                                    <input
+                                    <select
                                         className="mt-2 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
-                                        type="text"
                                         name="doctor"
                                         value={appointment.doctor}
                                         onChange={handleInputChange}
-                                    />
+                                    >
+                                        <option value="">Select</option>
+                                        {doctors.map((doctor, index) => (
+                                            <option key={`${doctor.principal}-${index}`} value={doctor.name}>
+                                                {doctor.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                
                             </div>

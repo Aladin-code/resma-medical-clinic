@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { resma_medical_clinic_backend } from 'declarations/resma-medical-clinic-backend';
 import Dashboard from './pages/Dashboard.jsx';
+import User from './pages/Users.jsx';
 import Records from './pages/Records.jsx';
 import Login from './pages/Login.jsx';
 import Appointments from './pages/Appointments.jsx';
@@ -15,69 +16,91 @@ import { AuthClient } from '@dfinity/auth-client';
 import { Principal } from '@dfinity/principal';
 import './tailwind.css';
 import logo from './assets/resma.png';
+import Swal from 'sweetalert2';
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [loading, setLoading] = useState(true);  // Loading state
   const [status, setStatus] = useState('');
   const [userInfo, setUserInfo] = useState(null); // Store user information
   const navigate = useNavigate();
 
-  const checkAuthStatus = async () => {
-    setLoading(true);
-    try {
+ 
+ 
+const checkAuthStatus = async () => {
+  setLoading(true);
+  try {
       const authClient = await AuthClient.create();
       const isAuth = await authClient.isAuthenticated();
-  
+
       if (isAuth) {
-        const principal = authClient.getIdentity().getPrincipal().toString();
-        console.log('Principal:', principal);
-        const storedPrincipal = localStorage.getItem('principal');
-  
-        // Principal consistency check
-        if (!storedPrincipal) {
-          localStorage.setItem('principal', principal);
-        } else if (storedPrincipal !== principal) {
-          console.error("Principal mismatch detected. Logging out.");
-          await authClient.logout();
-          setIsAuthenticated(false);
-          localStorage.removeItem('isAuthenticated');
-          localStorage.removeItem('principal');
-          navigate('/login');
-          return;
-        }
-  
-        // Authenticate user with backend
-        const principalObj = Principal.fromText(principal);
-        const userDetails = await resma_medical_clinic_backend.authenticateUser(principalObj);
-  
-        // If userDetails is null or undefined, redirect to login
-        if (userDetails.length === 0) { // Strict check for null
-          console.error("User authentication failed. Redirecting to login.");
-          await authClient.logout();
-          setIsAuthenticated(false);
-          localStorage.removeItem('isAuthenticated');
-          localStorage.removeItem('principal');
-          navigate('/login');
-        } else {
-          console.log("Authenticated user:", userDetails);
-          setUserInfo(userDetails);
-          setIsAuthenticated(true);
-          localStorage.setItem('isAuthenticated', 'true');
-        }
+          const principal = authClient.getIdentity().getPrincipal().toString();
+          console.log('Principal:', principal);
+          const storedPrincipal = localStorage.getItem('principal');
+
+          // Principal consistency check
+          if (!storedPrincipal) {
+              localStorage.setItem('principal', principal);
+          } else if (storedPrincipal !== principal) {
+              console.error("Principal mismatch detected. Logging out.");
+              await authClient.logout();
+              setIsAuthenticated(false);
+              localStorage.removeItem('isAuthenticated');
+              localStorage.removeItem('principal');
+              navigate('/login');
+              return;
+          }
+
+          // Authenticate user with backend
+          const principalObj = Principal.fromText(principal);
+          const userStatus = await resma_medical_clinic_backend.authenticateUser(principalObj);
+
+          if (userStatus === "User is active.") {
+              console.log("Authenticated and active user:", userStatus);
+              setIsAuthenticated(true);
+              localStorage.setItem('isAuthenticated', 'true');
+              const userDetails = await resma_medical_clinic_backend.getAuthenticatedUser(principalObj);
+              setUserInfo(userDetails);
+          } else if (userStatus === "User is registered but inactive.") {
+              Swal.fire({
+                  title: 'Account Pending Approval',
+                  text: "Your account has been registered but is awaiting admin approval. You’ll be notified once it’s verified.",
+                  icon: 'info',
+                  confirmButtonText: 'OK',
+                  confirmButtonColor: '#4673FF'
+              });
+              setIsAuthenticated(false);
+              setStatus("User registered but inactive. Awaiting admin approval.");
+          } else {
+              console.error("User not found.");
+              setIsAuthenticated(false);
+            //   Swal.fire({
+            //       title: 'Account Not Registered',
+            //       text: 'It appears you do not have an account yet. Would you like to register?',
+            //       icon: 'warning',
+            //       showCancelButton: true,
+            //       confirmButtonText: 'Register',
+            //       confirmButtonColor: '#4673FF',
+            //       cancelButtonText: 'Cancel'
+            //   }).then((result) => {
+            //       if (result.isConfirmed) {
+            //           navigate('/login');
+            //       }
+            //   });
+          }
       } else {
-        console.log('User is not authenticated');
-        setIsAuthenticated(false);
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('principal');
+          console.log('User is not authenticated');
+          setIsAuthenticated(false);
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('principal');
       }
-    } catch (error) {
+  } catch (error) {
       console.error('Error checking authentication status: ', error);
-    } finally {
+  } finally {
       setLoading(false);
-    }
-  };
-  
-  
+  }
+};
+
   
   useEffect(() => {
     const storedAuth = localStorage.getItem('isAuthenticated');
@@ -89,44 +112,119 @@ function App() {
   }, []);
 
   const handleLogin = async () => {
-    setLoading(true); // Start loading immediately
+    setLoading(true);
+    console.log(loading);
     try {
-      const authClient = await AuthClient.create();
-      await authClient.login({
-        onSuccess: async () => {
-          const principal = authClient.getIdentity().getPrincipal();
-          console.log('Principal:', principal.toString());
-          const principalObj = Principal.fromText(principal.toString());
-  
-          // Call backend to authenticate and get user details
-          const userDetails = await resma_medical_clinic_backend.authenticateUser(principalObj);
-  
-          if (userDetails.length === 0) {
-            console.error("User authentication failed. Logging out.");
-            await authClient.logout();
-            setStatus('Login failed. Please try again.');
-          } else {
-            console.log('User logged in successfully:', userDetails);
-            setIsAuthenticated(true);
-            localStorage.setItem('isAuthenticated', 'true');
-            setUserInfo(userDetails);  // Store user info
-            setLoading(false); // Turn off loading after successful login
-            navigate('/');  // Navigate to the dashboard or home page
-          }
-        },
-        onError: (error) => {
-          console.error('Login failed: ', error);
-          setStatus(`Login failed: ${error.message || 'Please try again.'}`);
-          setLoading(false); // Turn off loading after failure
-        }
-      });
+       
+        const authClient = await AuthClient.create();
+        await authClient.login({
+            onSuccess: async () => {
+                const principal = authClient.getIdentity().getPrincipal();
+                const principalObj = Principal.fromText(principal.toString());
+                const userStatus = await resma_medical_clinic_backend.authenticateUser(principalObj);
+                
+                console.log("Backend response:", userStatus);  // Log backend response here
+                if (userStatus === "User is active.") {
+                    console.log("User logged in successfully:", userStatus);
+                    setIsAuthenticated(true);
+                    localStorage.setItem('isAuthenticated', 'true');
+                    const userDetails = await resma_medical_clinic_backend.getAuthenticatedUser(principalObj);
+                    setUserInfo(userDetails);
+                    navigate('/');  // Navigate to the dashboard or home page
+                    setLoading(false);
+                } else if (userStatus === "User is registered but inactive.") {
+                    setLoading(true);
+                    Swal.fire({
+                        title: 'Acces Denied!',
+                        html: `
+                            <p>Your account has been created and is now pending approval. Once verified by an admin, you'll receive a notification granting you access. Thank you for your patience!</p>
+                        `,
+                        icon: 'warning',
+                        confirmButtonText: 'Okay',
+                        confirmButtonColor: '#4673FF'
+                    });
+                    setIsAuthenticated(false);
+                    setStatus("User registered but inactive. Awaiting admin approval.");
+                    setLoading(false);
+                } else {
+                    setLoading(false);
+                    Swal.fire({
+                        title: 'User Not Registered',
+                        text: 'Would you like to register a new account?',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Register',
+                        confirmButtonColor: '#4673FF',
+                        cancelButtonText: 'Cancel'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            // Show a second prompt to get the name and specialization
+                            const { value: formValues,isDismissed } = await Swal.fire({
+                                title: 'Enter your details',
+                                html:
+                                    '<input id="swal-input1" class="swal2-input" placeholder="Name">' +
+                                    '<input id="swal-input2" class="swal2-input" placeholder="Specialization">',
+                                focusConfirm: false,
+                                showCancelButton: true,
+                                confirmButtonText: 'Submit',
+                                confirmButtonColor: '#4673FF',
+                                cancelButtonText: 'Cancel',
+                                preConfirm: () => {
+                                    const name = document.getElementById('swal-input1').value;
+                                    const specialization = document.getElementById('swal-input2').value;
+                                    if (!name || !specialization) {
+                                        Swal.showValidationMessage('Please enter both name and specialization');
+                                        return false;
+                                    }
+                                    return { name, specialization };
+                                }
+                            });
+                    
+                            if (formValues) {
+                                // Proceed to register user with inputted name and specialization
+                                const { name, specialization } = formValues;
+                                const registrationStatus = await resma_medical_clinic_backend.registerUser(
+                                    principalObj,
+                                    name,
+                                    specialization,
+                                    "User",
+                                    "pending" // Default role
+                                );
+                    
+                                if (registrationStatus === "User registered but inactive.") {
+                                    Swal.fire({
+                                        title: 'Registration Successful!',
+                                        text: `Account created. Awaiting admin approval.`,
+                                        icon: 'success',
+                                        confirmButtonText: 'OK',
+                                        confirmButtonColor: '#4673FF'
+                                    });
+                                }
+                            }else if (isDismissed) {
+                                // Set loading to false if registration form is canceled
+                                setLoading(false);
+                            }
+                        }else{
+                            setLoading(false);
+                        }
+                    });
+                    
+                  
+                }
+            },
+            onError: (error) => {
+                console.error('Login failed: ', error);
+                setStatus(`Login failed: ${error.message || 'Please try again.'}`);
+                setLoading(false);
+            }
+        });
     } catch (error) {
-      console.error('Login error: ', error);
-      setStatus('Login failed. Please try again.');
-      setLoading(false); // Turn off loading on error
+        console.error('Login error: ', error);
+        setStatus('Login failed. Please try again.');
+    } finally {
+        setLoading(false);
     }
-  };
-  
+};
   const handleLogout = async () => {
     const authClient = await AuthClient.create();
     await authClient.logout();
@@ -137,13 +235,19 @@ function App() {
     navigate('/login');
   };
 
-  if (loading) {
-    return <div className='h-screen w-full flex justify-center items-center transition-all duration-700 ease-in-out '><img className='shadow-xl rounded-xl animate-subtle-spin' src={logo} alt="logo" width="200px" /></div>;  // Show loading screen while checking auth status
-  }
 
+
+if (loading) {
+  return (
+            <div className="flex justify-center items-center h-screen">
+                <img className="shadow-xl rounded-xl animate-subtle-spin" src={logo} alt="Loading..." width="200px" />
+            </div>
+        );
+}
   return (
     <Routes>
       <Route path="/" element={isAuthenticated ? <Dashboard userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="/users" element={isAuthenticated ? <User userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/records" element={isAuthenticated ? <Records userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/appointments" element={isAuthenticated ? <Appointments userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/addPatient" element={isAuthenticated ? <AddPatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
