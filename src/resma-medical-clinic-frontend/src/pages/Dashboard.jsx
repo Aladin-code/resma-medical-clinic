@@ -12,15 +12,12 @@ function Dashboard({userInfo, handleLogout}){
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);  
 
-    useEffect(() => {
-        console.log('Dashboard userInfo:', userInfo);
-        fetchAllAppointments(role, username);
-        fetchAllPatients();
-    }, []);  // Empty dependency array means this runs only on mount
-    
+     // Empty dependency array means this runs only on mount
+    console.log(userInfo.length)
     
     if (userInfo.length === 0) {
-    return <div>Loading user information...</div>;
+        console.log(userInfo);
+    return
     }
 
     const customStyles = {
@@ -57,7 +54,7 @@ function Dashboard({userInfo, handleLogout}){
 
     const fetchAllAppointments = async (userRole, doctorName) => {
         const allAppointments = await resma_medical_clinic_backend.getAllAppointments();
-        
+        console.log("All Appointments:", allAppointments);
         // Filter for appointments with status "upcoming"
         const upcomingAppointments = allAppointments
             .filter(([id, app]) => app.status.toLowerCase() === "upcoming")
@@ -68,16 +65,17 @@ function Dashboard({userInfo, handleLogout}){
             let filteredAppointments;
     
             // Check if the user is a secretary or doctor
-            if (userRole === 'Clinic secretary') {
+            if (userRole === 'Secretary' ) {
                 // Secretary: show all appointments
                 filteredAppointments = upcomingAppointments;
-            } else if (userRole === 'Doctor') {
+            } else if (userRole === 'Doctor' || userRole === "Admin") {
                 // Doctor: show only appointments where the doctor's name matches
                 filteredAppointments = upcomingAppointments.filter(([id, app]) => app.doctor === doctorName);
             }
     
         setAppointmentsEntries(filteredAppointments);
         setFilteredAppointments(filteredAppointments);  // Initialize with upcoming appointments
+        console.log(filteredAppointments)
     };
     
     
@@ -162,11 +160,12 @@ function Dashboard({userInfo, handleLogout}){
       
     const user = userInfo[0];
     const username = user.name;
+    
     const role = user.role;
 
     const getTodayAppointments = () => {
         if (!Array.isArray(appointmentsEntries)) {
-            console.warn('appointmentsEntries is not an array:', appointmentsEntries);
+           
             return 0; // or handle it in a way that makes sense for your application
         }
     
@@ -182,23 +181,12 @@ function Dashboard({userInfo, handleLogout}){
         return todayAppointments.length;
     };
 
-    const getUpcomingAppointments = (appointments) => {
-        // Ensure appointments is always an array, even if it's undefined or null
-        const validAppointments = Array.isArray(appointments) ? appointments : [];
-      
-        // If there are no appointments, return an empty array or handle accordingly
-        if (validAppointments.length === 0) {
-          console.log("No upcoming appointments.");
-          return []; // You can display a "no appointments" message here if needed
-        }
-      
-        // If there are appointments, proceed with filtering
-        return validAppointments.filter(appointment => {
-          // Your filter logic here
-          // For example, check if the appointment is in the future:
-          return new Date(appointment.date) > new Date();
-        });
-      };
+    const getUpcomingAppointments = () => {
+        const now = new Date().getTime();
+        return filteredAppointments.filter(([id, app]) => Number(app.timestamp) > now).length;
+    };
+    
+    
       
 
     const [patientEntries, setPatientEntries] = useState([]);
@@ -224,32 +212,32 @@ function Dashboard({userInfo, handleLogout}){
         const currentMonth = now.getMonth(); // 0-based
         const currentYear = now.getFullYear();
     
-        console.log("Patient Entries:", patientEntries); // Log patient entries to verify
+       
         const newPatients = patientEntries.filter((patientEntry, index) => {
             // Log the current patient object to debug
-            console.log(`Patient ${index} Data:`, patientEntry);
+          
     
             const patient = patientEntry[1]; // Access the patient object (assuming it's in the second position)
     
             if (!patient.hasOwnProperty('registrationDate')) {
-                console.warn(`Missing registration date for patient with ID: ${patient.id}`);
+                
                 return false;  // Skip this patient if registrationDate is missing
             }
     
             const registrationDateStr = patient.registrationDate;
             if (!registrationDateStr || typeof registrationDateStr !== 'string') {
-                console.warn(`Invalid registration date format for patient with ID: ${patient.id}`);
+        
                 return false; // Skip if registrationDate is not a valid string
             }
             const [year, month, day] = registrationDateStr.split('-').map(Number); // Split into components
     
             // Log parsed date components
-            console.log(`Parsed Date - Year: ${year}, Month: ${month}, Day: ${day}`);
+        
     
             const registrationDate = new Date(year, month - 1, day); // Month is 0-indexed in JS Date
     
             // Log the created date object to verify it
-            console.log('Registration Date Object:', registrationDate);
+           
     
             // Compare the registration date with the current date's month and year
             return registrationDate.getMonth() === currentMonth && registrationDate.getFullYear() === currentYear;
@@ -257,12 +245,26 @@ function Dashboard({userInfo, handleLogout}){
     
         return newPatients.length;
     };
+
     const today = new Date();
     const dateToday = formatDate(today);
-    
+    console.log(appointmentsEntries)
+
+    const tableData = appointmentsEntries.map(([id, app]) => ({
+        id,
+        name: app.name,
+        timestamp: app.timestamp,
+        doctor: app.doctor,
+        status: app.status,
+    }));
+    useEffect(() => {
+        console.log('Dashboard userInfo:', userInfo);
+        fetchAllAppointments(role, username);
+        fetchAllPatients();
+    }, []);
     return(
         <>
-          <Sidebar handleLogout={handleLogout} />
+          <Sidebar role={user.role} handleLogout={handleLogout} />
             <div className='ml-64 flex-grow  font-poppins px-1'>
                 <div className='flex-col'>
                 {/* <div className="w-full text-right">
@@ -278,7 +280,7 @@ function Dashboard({userInfo, handleLogout}){
                                 <p className='text-base font-semibold mt-[30px]'>WELCOME</p>
                                 <p  className='text-2xl font-bold'> {user?.name || 'user'}</p>
                                 <p className='text-sm font-semibold'>
-                                    {user.name === "Dr. Richard Allen Gabor" ? "Internalist" : null}
+                                    {user.specialization}
                                 </p>
                                 <span ><img className='absolute bottom-0 right-0' src={checkup} alt="checkup" width="270px" height="500px"/></span>
                                 {/* <span className=' absolute bottom-3 left-3 text-[#4673FF] text-sm font-semibold'><a href="">Edit Profile</a></span> */}
@@ -314,19 +316,19 @@ function Dashboard({userInfo, handleLogout}){
                             {/* <p className='text-sm font-semibold'>TODAY: {dateToday}</p> */}
                             <div className='mt-5'>
                             {appointmentsEntries && appointmentsEntries.length > 0 ? (
-                        <DataTable
-                            columns={columns}
-                            data={filteredAppointments}
-                            pagination
-                            paginationPerPage={rowsPerPage}
-                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                            onChangePage={handlePageChange}
-                            onChangeRowsPerPage={handleRowsPerPageChange}
-                            customStyles={customStyles}
-                        />
-                    ) : (
-                        <p className="text-center text-xl font-semibold">No appointments</p> // Display message when no appointments
-                    )}
+                               <DataTable
+                               columns={columns}
+                               data={tableData} // Use the formatted tableData
+                               pagination
+                               paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                               customStyles={customStyles}
+                           />
+                           
+                            ) : (
+                                <div className='flex justify-center items-center min-h-[300px]'>
+                                <h2 className='text-gray-600 text-sm '>No appointments today</h2>
+                            </div>
+                            )}
                             </div>
                             
                         </div>

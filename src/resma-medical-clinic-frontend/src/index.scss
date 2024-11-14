@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 body {
-  font-family: sans-serif;
+  font-family: "Poppins", serif;
   font-size: 1.5rem;
 }
 
@@ -54,4 +54,32 @@ button[type="submit"] {
 .input-placeholder-padding{
   font-size: 13px;
   font-color: red;
+}
+.confirm-button-width {
+  width: 150px !important;
+}
+
+.cancel-button-width {
+  width: 150px !important;
+}
+.custom-swal-button{
+  margin-top: -10px;
+  width: 182px;
+  margin-bottom: 30px;
+  font-weight: 600;
+}
+.custom-cancel-button{
+  margin-top: -10px;
+  width: 182px;
+  background-color:red;
+  margin-bottom: 30px;
+  font-weight: 600;
+}
+.custom-validation{
+  font-size: 13px;
+  text-align: left;
+  
+}
+.datatable{
+  text-align: center !important; 
 }

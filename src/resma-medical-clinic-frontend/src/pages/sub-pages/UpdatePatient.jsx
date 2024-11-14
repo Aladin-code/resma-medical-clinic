@@ -5,7 +5,10 @@ import Sidebar from '../Sidebar.jsx';
 import { IoIosArrowBack } from "react-icons/io";
 import { NavLink } from 'react-router-dom';
 import MoonLoader from "react-spinners/ClipLoader";
-function UpdatePatient() {
+function UpdatePatient({userInfo,handleLogout}) {
+    const user = userInfo[0];
+    const username = user.name;
+    const role = user.role;
     const navigate = useNavigate();
     const { id } = useParams(); // Get the id from the URL
 
@@ -141,85 +144,67 @@ function UpdatePatient() {
         return Object.keys(formErrors).length === 0;
     };
 
-   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) {
-        return;
-    }
-    const currentDate = new Date().toISOString().split('T')[0];
-    setSaveLoader(true);
-
-    try {
-        // Validation: If no report, laboratory, or checkup, store empty arrays
-        const reportArray = patient.reports.length > 0 ? patient.reports : [];
-        const laboratoryArray = patient.laboratory.length > 0 ? patient.laboratory : [];
-        const checkupArray = patient.checkups.length > 0 ? patient.checkups : [];
-
-        // Call the backend function
-        const result = await resma_medical_clinic_backend.updatePatient(
-            patient.id,
-            patient.lastName,
-            patient.firstName,
-            patient.middleName,
-            patient.extName,
-            patient.dateOfBirth,
-            patient.gender,
-            patient.address,
-            patient.contact,
-            patient.height,
-            patient.weight,
-            patient.emergencyContact,
-            currentDate,           // Pass the registration date as the current date
-            reportArray.length > 0 ? reportArray[0] : {  // Single report or empty object
-                date: '',
-                diagnosis: '',
-                prescriptions: []
-            },
-            laboratoryArray.length > 0 ? laboratoryArray[0] : { // Single laboratory or empty object
-                test: {
-                    date: '',
-                    testName: '',
-                    result: []
-                }
-            },
-            checkupArray.length > 0 ? checkupArray[0] : { // Single checkup or empty object
-                date: 0
-            }
-        );
-
-        if (result) {
-            setSaveLoader(false);
-            setPatient({
-                id: '',
-                lastName: '',
-                firstName: '',
-                middleName: '',
-                extName: '',
-                dateOfBirth: '',
-                gender: '',
-                address: '',
-                contact: '',
-                height: '',
-                weight: '',
-                emergencyContact: {
-                    name: '',
-                    address: '',
-                    relationship: '',
-                    contact: ''
-                },
-                reports: [],
-                laboratory: [],
-                checkups: []
-            });
-            navigate(`/viewPatient/${patient.id}`, { state: { success: true } });
-        } else {
-            navigate('/addAppointment', { state: { failed: true } });
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!validate()) {
+            return;
         }
-    } catch (error) {
-        console.error("Error updating patient:", error);
-        alert('Error updating patient');
-    }
-};
+        const currentDate = new Date().toISOString().split('T')[0];
+        setSaveLoader(true);
+    
+        try {
+       
+            // Call the backend function
+            const result = await resma_medical_clinic_backend.updatePatient(
+                patient.id,
+                patient.lastName,
+                patient.firstName,
+                patient.middleName,
+                patient.extName,
+                patient.dateOfBirth,
+                patient.gender,
+                patient.address,
+                patient.contact,
+                patient.height,
+                patient.weight,
+                patient.emergencyContact,
+                currentDate,           // Pass the registration date as the current date
+               
+            );
+    
+            if (result) {
+                setSaveLoader(false);
+                setPatient({
+                    id: '',
+                    lastName: '',
+                    firstName: '',
+                    middleName: '',
+                    extName: '',
+                    dateOfBirth: '',
+                    gender: '',
+                    address: '',
+                    contact: '',
+                    height: '',
+                    weight: '',
+                    emergencyContact: {
+                        name: '',
+                        address: '',
+                        relationship: '',
+                        contact: ''
+                    },
+                    currentDate: ''
+                  
+                });
+                navigate(`/records/viewPatient/${patient.id}`, { state: { success: true } });
+            } else {
+                navigate(-1, { state: { failed: true } });
+            }
+        } catch (error) {
+            console.error("Error updating patient:", error);
+            alert('Error updating patient');
+        }
+    };
+    
 
 
     const handleCancel = () => {
@@ -229,12 +214,12 @@ function UpdatePatient() {
     
     return (
          <>
-            <Sidebar />
+            <Sidebar role={user.role} handleLogout={handleLogout} />
             <div className='max-h-screen ml-64 flex-grow font-poppins p-3'>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
                         <NavLink to="/records" className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#014BA8]" href="">MEDICAL RECORDS</NavLink>
-                        <NavLink to="/AddPatient" className="fw-32 font-semibold  text-xl text-[#4673FF] " href=""> / ADD PATIENT</NavLink>
+                        <NavLink to="/AddPatient" className="fw-32 font-semibold  text-xl text-[#4673FF] " href=""> / UPDATE PATIENT</NavLink>
                     </div>
 
                     <div className='flex justify-center'>
@@ -246,8 +231,8 @@ function UpdatePatient() {
                             )}
                         
                         </button>
-                        <button className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md">
-                        <NavLink to="/addAppointment">CANCEL</NavLink></button>
+                        <button className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md" onClick={handleCancel}>
+                      CANCEL</button>
                     </div>
                 </div>
            
@@ -268,6 +253,7 @@ function UpdatePatient() {
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
                                             required
+                                             autoComplete='off'
                                         />
                                          {errors.lastName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.lastName}</p>}
                                </div>
@@ -283,6 +269,7 @@ function UpdatePatient() {
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
                                             required
+                                             autoComplete='off'
                                         />
                                          {errors.firstName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.firstName}</p>}
                                </div>
@@ -297,6 +284,7 @@ function UpdatePatient() {
                                             value={patient.middleName}
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
+                                             autoComplete='off'
                                         />
                                         {errors.middleName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.middleName}</p>}
 
@@ -312,6 +300,7 @@ function UpdatePatient() {
                                             value={patient.extName}
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
+                                             autoComplete='off'
                                         />
                                </div>
 
@@ -329,6 +318,7 @@ function UpdatePatient() {
                                         onChange={handleInputChange}
                                         placeholder='mm/dd/yyyy'
                                         required
+                                         autoComplete='off'
                                     />
                                     {errors.dateOfBirth && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.dateOfBirth}</p>}
                                 </div>
@@ -343,6 +333,7 @@ function UpdatePatient() {
                                         onChange={handleInputChange}
                                         placeholder='Enter here'
                                         required
+                                         autoComplete='off'
                                     />
                                     {errors.contact && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.contact}</p>}
                                 </div>
@@ -375,6 +366,7 @@ function UpdatePatient() {
                                             value={patient.height}
                                             onChange={handleInputChange}
                                             placeholder='cm'
+                                             autoComplete='off'
                                         />
                                         {errors.height && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.height}</p>}
                                     </div>
@@ -388,6 +380,7 @@ function UpdatePatient() {
                                                 value={patient.weight}
                                                 onChange={handleInputChange}
                                                 placeholder='kg'
+                                                 autoComplete='off'
                                             />
                                             {errors.weight && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.weight}</p>}
                                         </div>
@@ -407,6 +400,7 @@ function UpdatePatient() {
                                         value={patient.address}
                                         onChange={handleInputChange}
                                         placeholder='Barangay, Municipality, Province'
+                                         autoComplete='off'
                                     />
                                     {errors.address && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.address}</p>}
                                 </div>
@@ -430,6 +424,7 @@ function UpdatePatient() {
             value={patient.emergencyContact.name}
             onChange={handleEmergencyContactChange}
             placeholder='Enter here'
+             autoComplete='off'
         />
         {errors.emergencyContactName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactName}</p>}
     </div>
@@ -443,6 +438,7 @@ function UpdatePatient() {
             value={patient.emergencyContact.address}
             onChange={handleEmergencyContactChange}
             placeholder='Barangay, Municipality, Province'
+             autoComplete='off'
         />
         {errors.emergencyContactAddress && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactAddress}</p>}
     </div>
@@ -456,6 +452,7 @@ function UpdatePatient() {
             value={patient.emergencyContact.relationship}
             onChange={handleEmergencyContactChange}
             placeholder='Enter here'
+             autoComplete='off'
         />
         {errors.emergencyContactRelationship && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactRelationship}</p>}
     </div>
@@ -471,6 +468,7 @@ function UpdatePatient() {
             value={patient.emergencyContact.contact}
             onChange={handleEmergencyContactChange}
             placeholder='09122978320'
+             autoComplete='off'
         />
         {errors.emergencyContactContact && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactContact}</p>}
     </div>

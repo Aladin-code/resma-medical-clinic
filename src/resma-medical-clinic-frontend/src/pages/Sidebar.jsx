@@ -5,8 +5,10 @@ import { PiFolderSimplePlusFill } from "react-icons/pi";
 import { AiFillSchedule } from "react-icons/ai";
 import { IoLogOut } from "react-icons/io5";
 
-function Sidebar({handleLogout}) {
-
+function Sidebar({role,handleLogout}) {
+   console.log("User", role);
+//    const user = userInfo[0];
+//    const role = user.role;
     return (
         <>      
             <nav className='fixed top-0 left-0 bg-[#639DFF] w-64 font-poppins h-screen pt-5 shadow-lg'>
@@ -27,7 +29,7 @@ function Sidebar({handleLogout}) {
                         <MdDashboard size={25} className='mx-1'/> <div>MY DASHBOARD</div>
                     </NavLink>
                     <NavLink 
-                        to="/records" 
+                        to="/records"  end={false}
                         className={({ isActive }) => 
                             `flex items-center h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
                         }
@@ -38,22 +40,27 @@ function Sidebar({handleLogout}) {
                        
                     </NavLink>
                     <NavLink 
-                        to={"/appointments" || "/addAppointment"} 
+                        to={"/appointments" } end={false}
                         className={({ isActive }) => 
                             `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
                         }
                     >
                         <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />APPOINTMENTS
                     </NavLink>
+                    {
+                        role === "Admin" && (
+                            <NavLink 
+                                to="/users" end={false}// Only the path "/users" is needed, since || "/users" will always be true
+                                className={({ isActive }) => 
+                                    `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
+                                }
+                            >
+                                <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />USERS
+                            </NavLink>
+                        )
+                    }
 
-                    <NavLink 
-                        to={"/users" || "/users"} 
-                        className={({ isActive }) => 
-                            `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
-                        }
-                    >
-                        <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />USERS
-                    </NavLink>
+                    
                     
                     
                 </div>

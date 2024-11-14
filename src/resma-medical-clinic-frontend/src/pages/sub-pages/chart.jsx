@@ -35,6 +35,14 @@ function ApexChart(props) {
 
         filteredData.forEach(result => {
             const { date, result: results } = result.test; // Destructure for clarity
+
+            const parsedDate = Number(date);
+            const newdate = new Date(parsedDate);
+            const formattedDate = newdate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              });
             results.forEach(res => {
                 const unit = res.unit;
                 const parsedValue = parseFloat(res.value); // Parse the value to float
@@ -42,7 +50,7 @@ function ApexChart(props) {
                     if (!unitData[unit]) {
                         unitData[unit] = { dates: [], values: [] };
                     }
-                    unitData[unit].dates.push(date);
+                    unitData[unit].dates.push(formattedDate);
                     unitData[unit].values.push(parsedValue);
                 }
             });

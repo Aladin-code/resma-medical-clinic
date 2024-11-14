@@ -3,6 +3,7 @@
     "resma-medical-clinic-backend": {
       "main": "src/resma-medical-clinic-backend/main.mo",
       "type": "motoko"
+     
     },
     "resma-medical-clinic-frontend": {
       "dependencies": [
@@ -14,6 +15,7 @@
       "type": "assets",
       "workspace": "resma-medical-clinic-frontend"
     }
+   
   },
   "defaults": {
     "build": {
@@ -22,5 +24,10 @@
     }
   },
   "output_env_file": ".env",
-  "version": 1
+  "version": 1,
+  "networks": {
+    "ic": {
+      "url": "https://ic0.app"
+    }
+  }
 }

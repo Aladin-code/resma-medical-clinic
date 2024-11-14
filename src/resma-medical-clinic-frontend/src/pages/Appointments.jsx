@@ -27,39 +27,8 @@ import Box from '@mui/material/Box';
 import MoonLoader from "react-spinners/ClipLoader";
 import { useLocation } from 'react-router-dom';
 import { IoMdClose } from "react-icons/io";
+import Swal from 'sweetalert2';
 
-function CustomDay(props) {
-    const { day, outsideCurrentMonth, ...other } = props;
-    const dayjsDay = day.startOf('day'); // Normalize the day to compare
-  
-    // Check if the current day has an appointment
-    const dateHasAppointment = filteredAppointments.some(
-      (appointment) => {
-        const appointmentDate = dayjs(appointment.timestamp).startOf('day');
-        return dayjsDay.isSame(appointmentDate); // Compare the normalized dates
-      }
-    );
-  
-    return (
-      <div className="relative">
-        <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
-        {dateHasAppointment && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: '#FFCC00', // Highlight days with appointments
-              borderRadius: '50%',
-              zIndex: 1,
-            }}
-          />
-        )}
-      </div>
-    );
-  }
 function Appointments({userInfo, handleLogout}) {
     const [appointmentsEntries, setAppointmentsEntries] = useState([]);
     const [filteredAppointments, setFilteredAppointments] = useState([]);
@@ -72,7 +41,7 @@ function Appointments({userInfo, handleLogout}) {
     const [cancelLoader, setCancelLoader] = useState({});
     const [success, setSuccess] = useState();
     const [failed, setFailed] = useState(false);
-    const [vertical, setVertical] = useState('top'); // Default vertical position
+    const [vertical, setVertical] = useState('bottom'); // Default vertical position
     const [horizontal, setHorizontal] = useState('right');
     let [color, setColor] = useState("#fff");
 
@@ -97,6 +66,8 @@ function Appointments({userInfo, handleLogout}) {
       useEffect(() => {
         fetchAllAppointments(role, username);
     }, []);
+
+ 
     
   
     
@@ -161,10 +132,10 @@ function Appointments({userInfo, handleLogout}) {
             let filteredAppointments = [];
     
             // Check if the user is a secretary or doctor
-            if (userRole === 'Clinic secretary') {
+            if (userRole === 'Secretary') {
                 // Secretary: show all appointments
                 filteredAppointments = sortedAppointments;
-            } else if (userRole === 'admin' || userRole === 'Doctor') {
+            } else if (userRole === 'Admin' || userRole === 'Doctor') {
                 // Doctor: show only appointments where the doctor's name matches
                 filteredAppointments = sortedAppointments.filter(([id, app]) => app.doctor === doctorName);
             }
@@ -177,21 +148,19 @@ function Appointments({userInfo, handleLogout}) {
             const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
             setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
 
-      
-             
-             
         } catch (error) {
             console.error('Error fetching appointments:', error);
         }
     };
-    
-
-    
-    
      // Handle tab changes to filter appointments based on tab selection
     
      const [latestAppointment, setLatestAppointment] = useState(null);
-      
+    const setLatestApp = () => {
+       
+    };
+    useEffect(() => {
+
+    }, [latestAppointment]);
 
     const formatDate = (timestamp) => {
         const date = new Date(Number(timestamp));
@@ -238,23 +207,25 @@ function Appointments({userInfo, handleLogout}) {
     
         // Open modal when a date is selected
         setOpenModal(true);
-    
+        
         // Filter appointments by selected date (comparing start of the day timestamps)
-        const appByDate = filteredAppointments.filter(([id, app]) => {
+        const appByDate = appointmentsEntries.filter(([id, app]) => {
             // Convert BigInt to Number if needed
             const appTimestamp = typeof app.timestamp === 'bigint' ? Number(app.timestamp) : app.timestamp;
     
             const appDateStartOfDay = new Date(appTimestamp).setHours(0, 0, 0, 0);  // Reset hours to get only the date part
-            return appDateStartOfDay === selectedTimestampStartOfDay;
+            if(user.role === "Admin" || user.role === "Doctor"){
+                return appDateStartOfDay === selectedTimestampStartOfDay && app.status === 'Upcoming' && app.doctor === user.name;
+            }else{
+                return appDateStartOfDay === selectedTimestampStartOfDay && app.status === 'Upcoming';
+            }
+           
         });
     
         setByDate(appByDate);
         console.log('Appointments', appByDate);
     };
     
-
-    
-
     const handleCloseModal = () => {
         setOpenModal(false);
     };
@@ -275,6 +246,11 @@ function Appointments({userInfo, handleLogout}) {
         selector: row => formatTime(row.timestamp),
         // sortable: true,
     },
+    // {
+    //     name: 'Purpose',
+    //     selector: row => row.purpose,
+    //     // sortable: true,
+    // },
     {
         name: 'Doctor',
         selector: row => row.doctor,
@@ -309,7 +285,7 @@ function Appointments({userInfo, handleLogout}) {
         ),
         sortable: true,
     },
-    ...(user.role === "admin" || user.role === "Clinic secretary" ? [{
+    ...(user.role === "Admin" || user.role === "Secretary" ? [{
         name: 'Actions',  // Always include the Actions column
         cell: row => (
             <>
@@ -332,7 +308,7 @@ function Appointments({userInfo, handleLogout}) {
                     </Tooltip>
                     <Tooltip title="Reschedule" placement="top" arrow>
                         <NavLink
-                            to={`/updateAppointment/${row.id}`}
+                            to={`/appointments/updateAppointment/${row.id}`}
                             className='w-28 rounded-md py-1.5 px-4 bg-[#4673FF] text-white text-base  m-1 flex justify-center items-center'
                             style={{ position: 'relative', minHeight: '40px' }} // Set a consistent height
                         >
@@ -363,105 +339,155 @@ function Appointments({userInfo, handleLogout}) {
         </>
         )
     }] : []),  // This will include the Actions column only if the user role is Admin or Secretary
-];
+    ];
 
-    
     const markCompleted = async (id) => {
-        let status = "Completed";
-        setDoneLoader((prev) => ({
-            ...prev,
-            [id]: true
-        }));
-
-      try {
-        let result = await resma_medical_clinic_backend.updateStatus(id, status);
-        if (result) {
-            setSuccess(true);
-           
-            // Directly update the state by filtering the completed appointment
-            const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
-                if (entryId === id) {
-                    return [entryId, { ...app, status: "Completed" }];
-                }
-                return [entryId, app];
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to mark this appointment as done?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'confirm-button-width',
+                cancelButton: 'cancel-button-width'
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                // Show a second prompt to get the name and specialization
+                let status = "Completed";
+                setDoneLoader((prev) => ({
+                    ...prev,
+                    [id]: true
+                }));
+                try {
+                    let result = await resma_medical_clinic_backend.updateStatus(id, status);
+                    if (result) {
+                        setSuccess(true);
+                       
+                        // Directly update the state by filtering the completed appointment
+                        const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
+                            if (entryId === id) {
+                                return [entryId, { ...app, status: "Completed" }];
+                            }
+                            return [entryId, app];
+                    });
+            
+                    // Set both the main state and the filtered state
+                    setAppointmentsEntries(updatedEntries);
+            
+                    // Filter based on the current active tab
+                    const updatedFiltered = updatedEntries.filter(([entryId, app]) => {
+                        if (value === 0) return true; // 'All' tab
+                        if (value === 1) return app.status === 'Upcoming'; // 'Upcoming' tab
+                        if (value === 2) return app.status === 'Completed'; // 'Completed' tab
+                        if (value === 3) return app.status === 'Cancelled'; // 'Cancelled' tab
+                        return false;
+                    });
+            
+                    setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
+                    } else {
+                        setFailed(true);
+                    }
+                    fetchAllAppointments(role, username);
+                    const upcomingAppointments = appointmentsEntries.filter(([id, app]) => app.status === "Upcoming");
+                    const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+                    setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+                }catch (error) {
+                        // Show failure message if something goes wrong
+                        setFailed('Failed to mark appointment as done.');
+                        console.error('Error marking appointment as done:', error);
+                    } finally {
+                        // Reset loading state for this specific appointment
+                        setDoneLoader((prev) => ({
+                            ...prev,
+                            [id]: false
+                        }));
+                    }
+                    
+            }else{
+                setLoading(false);
+            }
         });
 
-        // Set both the main state and the filtered state
-        setAppointmentsEntries(updatedEntries);
-
-        // Filter based on the current active tab
-        const updatedFiltered = updatedEntries.filter(([entryId, app]) => {
-            if (value === 0) return true; // 'All' tab
-            if (value === 1) return app.status === 'Upcoming'; // 'Upcoming' tab
-            if (value === 2) return app.status === 'Completed'; // 'Completed' tab
-            if (value === 3) return app.status === 'Cancelled'; // 'Cancelled' tab
-            return false;
-        });
-
-        setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
-        } else {
-            setFailed(true);
-        }
-    }catch (error) {
-            // Show failure message if something goes wrong
-            setFailed('Failed to mark appointment as done.');
-            console.error('Error marking appointment as done:', error);
-        } finally {
-            // Reset loading state for this specific appointment
-            setDoneLoader((prev) => ({
-                ...prev,
-                [id]: false
-            }));
-        }
-    
+       
     };
     
     const markCancelled = async (id) => {
-        setCancelLoader((prev) => ({
-            ...prev,
-            [id]: true
-        }));
-        let status = "Cancelled";
-
-        try {
-        let result = await resma_medical_clinic_backend.updateStatus(id, status);
-        if (result) {
-            setSuccess(true);
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to cancel this appointment?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'confirm-button-width',
+                cancelButton: 'cancel-button-width'
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                setCancelLoader((prev) => ({
+                    ...prev,
+                    [id]: true
+                }));
+                let status = "Cancelled";
+        
+                try {
+                let result = await resma_medical_clinic_backend.updateStatus(id, status);
+                if (result) {
+                    setSuccess(true);
+                    
+                    // Directly update the state by filtering out the canceled appointment
+                    const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
+                        if (entryId === id) {
+                            return [entryId, { ...app, status: "Cancelled" }];
+                        }
+                        return [entryId, app];
+                    });
             
-            // Directly update the state by filtering out the canceled appointment
-            const updatedEntries = appointmentsEntries.map(([entryId, app]) => {
-                if (entryId === id) {
-                    return [entryId, { ...app, status: "Cancelled" }];
-                }
-                return [entryId, app];
-            });
-    
-            // Set both the main state and the filtered state
-            setAppointmentsEntries(updatedEntries);
-    
-            // Filter based on the current active tab
-            const updatedFiltered = updatedEntries.filter(([entryId, app]) => {
-                if (value === 0) return true; // 'All' tab
-                if (value === 1) return app.status === 'Upcoming'; // 'Upcoming' tab
-                if (value === 2) return app.status === 'Completed'; // 'Completed' tab
-                if (value === 3) return app.status === 'Cancelled'; // 'Cancelled' tab
-                return false;
-            });
-    
-            setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
-        } else {
-            setFailed(true);
-        }}catch (error) {
-            // Show failure message if something goes wrong
-            setFailed('Failed to mark appointment as done.');
-            console.error('Error marking appointment as done:', error);
-        } finally {
-            // Reset loading state for this specific appointment
-            setCancelLoader((prev) => ({
-                ...prev,
-                [id]: false
-            }));
-        }
+                    // Set both the main state and the filtered state
+                    setAppointmentsEntries(updatedEntries);
+            
+                    // Filter based on the current active tab
+                    const updatedFiltered = updatedEntries.filter(([entryId, app]) => {
+                        if (value === 0) return true; // 'All' tab
+                        if (value === 1) return app.status === 'Upcoming'; // 'Upcoming' tab
+                        if (value === 2) return app.status === 'Completed'; // 'Completed' tab
+                        if (value === 3) return app.status === 'Cancelled'; // 'Cancelled' tab
+                        return false;
+                    });
+            
+                    setFilteredAppointments(updatedFiltered); // Update filtered appointments based on active tab
+
+                    fetchAllAppointments(role, username);
+                    const upcomingAppointments = appointmentsEntries.filter(([id, app]) => app.status === "Upcoming");
+                    const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+                    setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+                } else {
+                    setFailed(true);
+                }}catch (error) {
+                    // Show failure message if something goes wrong
+                    setFailed('Failed to cancel appointment.');
+                    console.error('Error cancelling appointment:', error);
+                } finally {
+                    // Reset loading state for this specific appointment
+                    setCancelLoader((prev) => ({
+                        ...prev,
+                        [id]: false
+                    }));
+                }      
+            }else{
+                setLoading(false);
+            }
+        });
+     
+    fetchAllAppointments(role, username);
     };
     
     
@@ -517,11 +543,13 @@ function Appointments({userInfo, handleLogout}) {
         }
     };
     
-   
+    useEffect(() => {
+      
+    }, [latestAppointment]);
     
     return (
         <>
-           <Sidebar handleLogout={handleLogout} />
+            <Sidebar role={user.role} handleLogout={handleLogout} />
             <div className='ml-64 flex-grow font-poppins p-3'>
             <h1 className='mt-4  mb-4 px-3 text-2xl font-bold text-[#4673FF]'>APPOINTMENTS</h1>
             <div>
@@ -566,7 +594,7 @@ function Appointments({userInfo, handleLogout}) {
                     <div className="w-1/2 rounded-xl border-2 border-slate-200 shadow-lg px-3 py-5 relative min-h-72">
                         <h1 className='mt-5 text-[#4673FF] text-lg font-semibold'>YOUR NEXT APPOINTMENT</h1>
 
-                        {latestAppointment && (
+                        {latestAppointment ? (
                             <>
                             <h1 className='my-3 text-xl font-bold  '>{formatDate(latestAppointment[1].timestamp)}</h1>
                             <div className='text-sm my-3 leading-6'>
@@ -576,7 +604,12 @@ function Appointments({userInfo, handleLogout}) {
                             </div>
                             </>
 
-                        )}
+                        ) :( 
+                            <div className='text-left mt-3'>
+                                <h2 className='px-1 text-gray-600 text-sm '>No upcoming appointment at the moment.</h2>
+                            </div>
+                        )
+                        }
                         <img className="absolute bottom-0 right-0" src={checkup} alt="" width="255px" height="286px" />
                     </div>
                     <div className="ml-2 w-1/2 border-2 border-slate-200 rounded-xl shadow-lg  min-h-72 py-0">
@@ -664,8 +697,6 @@ function Appointments({userInfo, handleLogout}) {
   />
 </LocalizationProvider> */}
 
-
-
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <DateCalendar
                             sx={{
@@ -741,8 +772,8 @@ function Appointments({userInfo, handleLogout}) {
                             className="w-72 text-[12px] pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 "
                         />
                             
-                            {(user.role === "admin" || user.role === "Clinic secretary") && (
-                               <NavLink to='/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#4673FF] text-white font-semibold transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW APPOINTMENT</NavLink>
+                            {(user.role === "Admin" || user.role === "Secretary") && (
+                               <NavLink to='/appointments/addAppointment' className='text-center text-xs w-30 rounded-md py-2.5 px-3 bg-[#4673FF] text-white font-semibold transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg'>NEW APPOINTMENT</NavLink>
                               )}
                         </div>
                     </div>

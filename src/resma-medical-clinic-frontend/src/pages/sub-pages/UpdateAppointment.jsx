@@ -7,11 +7,17 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import MoonLoader from "react-spinners/ClipLoader";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-
-function UpdateAppointment() {
+import Swal from 'sweetalert2';
+function UpdateAppointment({userInfo,handleLogout}) {
+    const user = userInfo[0];
+    const username = user.name;
+    const role = user.role;
+    const [duration, setDuration] = useState("");
     const navigate = useNavigate();
     const [saveLoader, setSaveLoader] = useState(false);
     const { id } = useParams();
+    const [success, setSuccess] = useState(false);
+    const [failed, setFailed] = useState(false);
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [selectedPatientID, setSelectedPatientID] = useState(null); // To store the selected patient ID
@@ -19,14 +25,16 @@ function UpdateAppointment() {
     const [filteredPatients, setFilteredPatients] = useState([]);
     let [color, setColor] = useState("#fff");
     const [appointmentFailed, setAppFailed] = useState(false);
-    const [vertical, setVertical] = useState('top'); // Default vertical position
+    const [vertical, setVertical] = useState('bottom'); // Default vertical position
     const [horizontal, setHorizontal] = useState('right');
+    const [filteredAppointments, setFilteredAppointments] = useState([]);
     const [appointment, setAppointment] = useState({
         id: '',
         name: '',
         doctor: '',
         purpose: '',
-        status: 'Upcoming'
+        status: 'Upcoming',
+        duration:''
     });
      
     const handleClose = (event, reason) => {
@@ -73,53 +81,134 @@ function UpdateAppointment() {
         setSelectedPatientID(patient.id); // Store the selected patient's ID
         setFilteredPatients([]); // Clear the filtered list after selection
     };
+    const handleDurationChange = (e) => {
+        setDuration(e.target.value);
+   }
+   const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-           // Check for undefined values
-       
-    
-        const dateTimeString = `${date}T${time}:00`; // Combine date and time to create a full datetime string
-        const timestamp = new Date(dateTimeString).getTime(); // Convert to Unix timestamp
-        if (!date || !time || !selectedPatientID || !appointment.doctor || !appointment.purpose) {
-            setAppFailed(true); // Show error if any required field is missing
-            return;
+    // Get timestamp as a number (milliseconds)
+    const dateTimeString = `${date}T${time}:00`;
+    const timestamp = new Date(dateTimeString).getTime(); // This is a number, not BigInt
+
+    // Convert duration to BigInt
+    const durationMilliseconds = BigInt(appointment.duration) * 60n * 1000n; // Ensure duration is BigInt (in milliseconds)
+
+    // Now safely add the two values (timestamp remains a number, duration is BigInt)
+    const timeFormat = BigInt(timestamp) + durationMilliseconds; // Convert timestamp to BigInt for addition
+
+    console.log("Timeformat", timeFormat);
+
+  
+
+  
+    const appointmentStatus = "Upcoming";
+
+    // Log arguments for debugging
+    console.log("Arguments:", id, timestamp, selectedPatientID, appointment.doctor, appointment.purpose,appointment.duration);
+
+    // Check for undefined values
+    if ( !id || !time || !date   || !selectedPatientID || !appointment.doctor || !appointment.purpose || !appointment.duration) {
+        console.error("One or more arguments are undefined");
+        setAppFailed(true);
+        return;
+    }
+    if (await checkForConflict(timeFormat,durationMilliseconds) === false) {
+        // setAppFailed(true); // Optionally, handle failure here
+        return;
+    }
+    setSaveLoader(true);
+  
+    try {
+        const result = await resma_medical_clinic_backend.addAppointment(
+            id,
+            BigInt(timestamp), // Ensure timestamp is passed as BigInt
+            selectedPatientID,
+            appointment.name,
+            appointment.doctor,
+            appointment.purpose,
+            appointmentStatus,
+            durationMilliseconds
+        );
+
+        if (result) {
+            setSaveLoader(false);
+            // Reset form
+            setAppointment({ id: '', name: '', doctor: '', purpose: '', status: '', duration: '' });
+            setDate('');
+            setTime('');
+            setSelectedPatientID(null);
+            navigate('/appointments', { state: { success: true } });
+        } else {
+            // setFailed(true);
+            console.log("Failed");
+            navigate('/appointments', { state: { failed: true } });
         }
-        setSaveLoader(true);
-        try {
-            const result = await resma_medical_clinic_backend.addAppointment(
-                id,
-                timestamp,
-                selectedPatientID, // Send the selected patient ID
-                appointment.name,
-                appointment.doctor,
-                appointment.purpose,
-                appointment.status
-            );
+    } catch (error) {
+        console.error("Error creating appointment:", error);
+        alert('Error creating appointment');
+    }
+};
 
-            if (result) {
-                setSaveLoader(false);
-                setAppointment({
-                    id: '',
-                    name: '',
-                    doctor: '',
-                    purpose: '',
-                    status: ''
-                });
-                setDate('');
-                setTime('');
-                setSelectedPatientID(null);
-                navigate('/appointments', { state: { success: true } });
-            } else {
-                setSaveLoader(false);
-                navigate('/appointments', { state: { failed: true } });
-            }
-        } catch (error) {
-            console.error("Error updating appointment:", error);
-            alert('Error updating appointment');
+const calculateEndTime = (startTimestamp, durationMinutes) => {
+        
+    return startTimestamp + durationMinutes;
+};
+const checkForConflict = async (timestampToCheck, durationMilliseconds) => {
+    console.log(filteredAppointments);
+    const conflictingAppointment = filteredAppointments.find(appArray => {
+        const app = appArray[1];
+        if (app.timestamp === undefined || app.duration === undefined) {
+            console.error('Missing timestamp or duration in appointment:', app);
+            return false; // Skip this appointment if the values are missing
         }
-    };
+        const start = BigInt(app.timestamp); // Make sure it's BigInt
+                
+        const duration = BigInt(app.duration); // Make sure it's BigInt
+                
+        const end = calculateEndTime(start, duration);
+                
+        const newStart = timestampToCheck - durationMilliseconds
+              
+        console.log("Appointment duration", app.duration);
+        console.log("Appointment start", start);
+        console.log("Appointment end", end);
+        console.log("Appointment time to check", timestampToCheck);
+        
+        return (newStart >= start && newStart < end) || (timestampToCheck > start && timestampToCheck <= end);
 
+
+                   
+    });
+
+    if (conflictingAppointment) {
+        const start = new Date(Number(conflictingAppointment[1].timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const end = new Date(Number(calculateEndTime(BigInt(conflictingAppointment[1].timestamp), BigInt(conflictingAppointment[1].duration)))).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Conflict Detected!',
+            html: `<div class="text-base">
+                      <p class="text-center">There is already an appointment on this date that conflicts with the time that was scheduled.</p>
+                      <p><strong>Appointment Details:</strong></p>
+                      <p>Time: ${start} - ${end}</p>
+                  </div>`,
+            text: 'Would you like to continue?',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            confirmButtonColor: '#4673FF',
+        });
+
+        // Handle the result
+        if (result.isConfirmed) {
+            return true; // Proceed with submission if user clicks 'Yes'
+        } else {
+            return false; // Prevent submission if user clicks 'Cancel'
+        }
+    }
+
+    return true; // Proceed with submission if no conflict
+};
     useEffect(() => {
         const fetchAppointmentData = async () => {
             try {
@@ -143,28 +232,105 @@ function UpdateAppointment() {
         fetchPatients();
     }, [id]);
 
+    useEffect(() => {
+        fetchAllAppointments(role, username);
+    }, []);
+
+    const fetchAllAppointments = async (userRole, doctorName) => {
+        try {
+            const allAppointments = await resma_medical_clinic_backend.getAllAppointments();
+            
+            if (!Array.isArray(allAppointments)) {
+                console.error('Expected an array from API, received:', allAppointments);
+                return; // Exit the function if data isn't an array
+            }
+            
+            // Sort appointments by date, from soonest to latest
+            const sortedAppointments = allAppointments.sort(([idA, appA], [idB, appB]) => {
+                return Number(appA.timestamp) - Number(appB.timestamp);
+            });
+    
+            let filteredAppointments = [];
+    
+            // Check if the user is a secretary or doctor
+            if (userRole === 'Secretary') {
+                // Secretary: show all appointments
+                filteredAppointments = sortedAppointments;  
+            } else if (userRole === 'Admin' || userRole === 'Doctor') {
+                // Doctor: show only appointments where the doctor's name matches
+                filteredAppointments = sortedAppointments.filter(([id, app]) => app.doctor === doctorName);
+            }
+            
+      
+            setFilteredAppointments(filteredAppointments); // Initialize with all appointments
+            console.log(filteredAppointments);
+            // // Find the earliest upcoming appointment
+            // const upcomingAppointments = filteredAppointments.filter(([id, app]) => app.status === "Upcoming");
+            // const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+            // setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+        }
+    };
     return (
         <>
-            <Sidebar />
+           <Sidebar role={user.role} handleLogout={handleLogout} />
             <Snackbar
-                    open={appointmentFailed}
-                    autoHideDuration={3000}
-                    message=""
-                    onClose={handleClose}
-                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
-                    key={`${vertical}${horizontal}`}
-                   >
-                     <Alert
-                        onClose={handleClose}
-                        severity="error"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                     >
-                    Please fill in all fields.
-                    </Alert>
-            </Snackbar>
-            <div className='ml-64 flex-grow font-poppins p-3'>
-                <div className='flex justify-between items-center mb-4'>
+  open={success}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`success-${vertical}${horizontal}`}  // Unique key for success Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="success"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Changes saved successfully!
+  </Alert>
+</Snackbar>
+
+<Snackbar
+  open={failed}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`failed-${vertical}${horizontal}`}  // Unique key for failed Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="error"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Something went wrong!
+  </Alert>
+</Snackbar>
+
+<Snackbar
+  open={appointmentFailed}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`appointmentFailed-${vertical}${horizontal}`}  // Unique key for appointmentFailed Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="error"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Please fill in all fields.
+  </Alert>
+</Snackbar>
+            <div className=' ml-64 flex-grow font-poppins p-3 max-h-screen'>
+                <div className='flex justify-between items-center mb-4  '>
                     <div className=''>
                         <NavLink to="/appointments" className="fw-32 font-semibold text-xl text-[#A9A9A9] hover:text-[#4673FF]">APPOINTMENTS</NavLink>
                         <NavLink to="" className="fw-32 font-semibold text-xl text-[#4673FF]"> / UPDATE APPOINTMENT</NavLink>
@@ -181,9 +347,9 @@ function UpdateAppointment() {
                         <button className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md"><NavLink to="/appointments">CANCEL</NavLink></button>
                     </div>
                 </div>
-                <div className="h-screen relative">
+                <div className=" relative">
                     <div className='w-full bg-[#4673FF] rounded-tl-xl rounded-tr-xl px-5 py-2 text-white font-semibold text-base'>Appointment Details</div>
-                    <form className="form px-6" onSubmit={handleSubmit}>
+                    <form className="form " onSubmit={handleSubmit}>
                         <div className='w-full text-sm'>
                         <div className='w-full flex px-7 py-1 mt-3'>
                                 <div className='w-1/2 mr-4'>
@@ -197,6 +363,8 @@ function UpdateAppointment() {
                                         value={appointment.name}
                                         onChange={handlePatientSearch}
                                         placeholder='Search patient...'
+                                        disabled
+
                                     />
                                     {filteredPatients.length > 0 && (
                                         <ul className="border border-gray-300 mt-1 max-h-40 overflow-y-auto">
@@ -220,6 +388,7 @@ function UpdateAppointment() {
                                         name="purpose"
                                         value={appointment.purpose}
                                         onChange={handleInputChange}
+                                        disabled
                                     />
                                 </div>
                             </div>
@@ -254,7 +423,21 @@ function UpdateAppointment() {
                                         name="doctor"
                                         value={appointment.doctor}
                                         onChange={handleInputChange}
+                                        disabled
                                     />
+                                </div>
+                                <div className='w-1/2 mr-4'>
+                                    <label className='mr-1 font-semibold text-black'>Duration<span className='text-[red]'>*</span></label>
+                                    <input
+                                        className="mt-2 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
+                                        name="duration"
+                                        value={appointment.duration}
+                                        onChange={handleInputChange}
+                                        type="number"
+                                        placeholder='Enter estimated minutes'
+                                         autoComplete='off'
+                                    >  
+                                    </input>
                                 </div>
                             </div>
                         </div>

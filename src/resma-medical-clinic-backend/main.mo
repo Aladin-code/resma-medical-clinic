@@ -30,7 +30,7 @@ actor ResmaMedicalClinic {
 
     type Laboratory = {
         test: {
-            date: Text;
+            date: Int;
             testName: Text;
             result: [Result];
         }
@@ -70,6 +70,7 @@ actor ResmaMedicalClinic {
         doctor: Text;
         purpose: Text;
         status: Text;
+        duration: Int;
     };
 
     type User = {
@@ -94,10 +95,10 @@ actor ResmaMedicalClinic {
     // let secretaryPrincipal: Principal = Principal.fromText("f6772-5hh27-jb7u5-hi4nx-lcvbu-legux-cme7o-mtjvk-wfahm-rrtpa-fae");
      let adminUser: User = {
         principalID = adminPrincipal;
-        name = "Dr. Aladin E. Cacho";  // Replace with actual admin name
+        name = "Dra. Abegail G. Resma";  // Replace with actual admin name
         specialization = "Internist";  // Replace with actual specialization if needed
-        role = "admin";
-        status = "active";
+        role = "Admin";
+        status = "Active";
     };
     users.put(adminPrincipal, adminUser);
 
@@ -116,7 +117,7 @@ actor ResmaMedicalClinic {
    public shared func authenticateUser(principalId: Principal): async Text {
     switch (users.get(principalId)) {
         case (?user) {
-            if (user.status == "active") {
+            if (user.status == "Active") {
                 return "User is active.";
             } else {
                 return "User is registered but inactive.";
@@ -161,7 +162,9 @@ public shared func registerUser(principalId: Principal, name: Text, specializati
         var activeUsers: [User] = [];
 
         for ((_, user) in users.entries()) {
-            if (user.status == "active") {
+            if (user.status == "Active" and user.role == "Doctor") {
+                activeUsers := Array.append<User>(activeUsers, [user]);
+            }else if (user.status == "Active" and user.role == "Admin") {
                 activeUsers := Array.append<User>(activeUsers, [user]);
             }
         };
@@ -179,30 +182,7 @@ public shared func registerUser(principalId: Principal, name: Text, specializati
     };
 
     // public shared func authenticateUser(principal: Principal): async ?{ principal: Principal; name: Text; role: Text } {
-    //     if (principal == doctor1Principal) {
-    //         return ?{ principal = principal; name = "Dr. Aladin E. Cacho"; role = "Doctor" };
-    //     } else if (principal == doctorPrincipal) {
-    //         return ?{ principal = principal; name = "Dr. Richard Allen Gabor"; role = "Doctor" };
-    //     } else if (principal == secretaryPrincipal) {
-    //         return ?{ principal = principal; name = "Sec. Paola Ysabel Linsangan"; role = "Clinic secretary" };
-    //     } else {
-    //         return null; // No match found, return null
-    //     }
-    // };
-    
-    // // Function to fetch all doctors based on principals
-    // public query func getAllDoctors(): async [{ principal: Principal; name: Text }] {
-    //     var doctors: [{ principal: Principal; name: Text }] = [];
-
-    //     // Since doctorPrincipal is defined as a valid Principal, you don't need a null check.
-    //     doctors := Array.append(doctors, [{ principal = doctorPrincipal; name = "Dr. Richard Allen Gabor" }]);
-    //     doctors := Array.append(doctors, [{ principal = doctor1Principal; name = "Dr. Aladin E. Cacho" }]);
-       
-    //     return doctors;
-    // };
-
-
-  // Function to update an existing patient
+   
 public func updatePatient(
     id: Text, 
     lastName: Text,
@@ -217,50 +197,58 @@ public func updatePatient(
     weight: Text, 
     emergencyContact: EmergencyContact,
     registrationDate: Text,
-    reports: Report,
-    laboratory: Laboratory,
-    checkups: Checkup
 ): async Bool {
+    // Retrieve the patient from the map
+    let maybePatient = patients.get(id);
+    
+    switch maybePatient {
+        case (?patient) {
+            // If the patient exists, retrieve the current reports, laboratory, and checkups
+            let currentLab = patient.laboratory;
+            let currentReport = patient.reports;
+            let currentCheckup = patient.checkups;
 
-    // Validation: If reports, laboratory, or checkups are empty, assign empty arrays
-    let reportArray: [Report] = if (reports.date == "") { [] } else { [reports] };
-    let laboratoryArray: [Laboratory] = if (laboratory.test.testName == "") { [] } else { [laboratory] };
-    let checkupArray: [Checkup] = if (checkups.date == 0) { [] } else { [checkups] };
+            // Create the updated patient object with the new values and current data
+            let updatepatient: Patient = {
+                id = id;
+                lastName = lastName;
+                firstName = firstName;
+                middleName = middleName;
+                extName = extName;
+                dateOfBirth = dateOfBirth;
+                gender = gender;
+                address = address;
+                contact = contact;
+                height = height;
+                weight = weight;
+                emergencyContact = emergencyContact;
+                registrationDate = registrationDate;
+                reports = currentReport;      // Existing reports
+                laboratory = currentLab;      // Existing laboratory data
+                checkups = currentCheckup;    // Existing checkups
+            };
 
-    // Create the updated patient object
-    let patient: Patient = {
-        id = id;
-        lastName = lastName;
-        firstName = firstName;
-        middleName = middleName;
-        extName = extName;
-        dateOfBirth = dateOfBirth;
-        gender = gender;
-        address = address;
-        contact = contact;
-        height = height;
-        weight = weight;
-        emergencyContact = emergencyContact;
-        registrationDate = registrationDate;
-        reports = reportArray;
-        laboratory = laboratoryArray;
-        checkups = checkupArray;
+            // Update the patient in the HashMap
+            patients.put(id, updatepatient);
+
+            // Filter out the old patient record from the patientsList
+            patientsList := Array.filter(patientsList, func(entry: (Text, Patient)) : Bool {
+                let (pid, _) = entry;
+                pid != id;
+            });
+
+            // Add the updated patient to the patientsList
+            patientsList := Array.append(patientsList, [(id, patient)]);
+
+            return true;
+        };
+        case null {
+            // Return false if the patient was not found
+            return false;
+        };
     };
-
-    // Update the patient in the HashMap
-    patients.put(id, patient);
-
-    // Filter out the old patient record from the patientsList
-    patientsList := Array.filter(patientsList, func(entry: (Text, Patient)) : Bool {
-        let (pid, _) = entry;
-        pid != id;
-    });
-
-    // Add the updated patient to the patientsList
-    patientsList := Array.append(patientsList, [(id, patient)]);
-
-    return true;
 };
+
 
 
       // Function to add a new patient
@@ -350,6 +338,7 @@ public func updatePatient(
                     doctor = appointment.doctor;
                     purpose = appointment.purpose;
                     status = updatedStatus;
+                    duration = appointment.duration;
                 };
                 appointments.put(id, updatedAppointment); 
                 
@@ -410,7 +399,7 @@ public func updatePatient(
     };
 
     
-   public func addAppointment(id: Text, timestamp: Int, patientID: Text, name: Text, doctor: Text, purpose: Text, status: Text): async Bool {
+   public func addAppointment(id: Text, timestamp: Int, patientID: Text, name: Text, doctor: Text, purpose: Text, status: Text, duration:Int): async Bool {
     let appointment: Appointment = {
         id = id;
         timestamp = timestamp;
@@ -419,6 +408,7 @@ public func updatePatient(
         doctor = doctor;
         purpose = purpose;
         status = status;
+        duration = duration
     };
 
     appointments.put(id, appointment);

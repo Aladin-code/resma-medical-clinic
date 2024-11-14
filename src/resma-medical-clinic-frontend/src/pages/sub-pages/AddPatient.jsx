@@ -16,7 +16,10 @@ function generateRandomID() {
     return prefix + randomLetters;
 }
 
-function AddPatient() {
+function AddPatient({userInfo,handleLogout}) {
+    const user = userInfo[0];
+    const username = user.name;
+    const role = user.role;
     const navigate = useNavigate();
     const [saveLoader, setSaveLoader] = useState(false);
     const [color, setColor] = useState("#fff");
@@ -95,8 +98,8 @@ function AddPatient() {
         }
         if (!patientInfo.contact.trim()) {
             formErrors.contact = "Contact number is required";
-        } else if (!/^\d{10,12}$/.test(patientInfo.contact)) {
-            formErrors.contact = "Enter a valid contact number (10-12 digits)";
+        } else if (!/^\d{11}$/.test(patientInfo.contact)) {
+            formErrors.contact = "Enter a valid contact number (11 digits)";
         }
         if (!patientInfo.gender) {
             formErrors.gender = "Gender is required";
@@ -184,7 +187,7 @@ function AddPatient() {
                     },
                     registrationDate: ''
                 });
-                navigate('/addAppointment', { state: { success: true } });
+                navigate(-1, { state: { success: true } });
             } else {
                 navigate('/addAppointment', { state: { failed: true } });
             }
@@ -201,7 +204,7 @@ function AddPatient() {
 
     return (
         <>
-            <Sidebar />
+           <Sidebar role={user.role} handleLogout={handleLogout} />
             <div className='max-h-screen ml-64 flex-grow font-poppins p-3'>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
@@ -218,8 +221,8 @@ function AddPatient() {
                             )}
                         
                         </button>
-                        <button className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md">
-                        <NavLink to="/addAppointment">CANCEL</NavLink></button>
+                        <button className="w-24 ml-1 py-1 rounded-3xl font-semibold text-lg bg-[#A9A9A9] text-white transition-all duration-300 transform hover:bg-gray-600 hover:scale-105 hover:shadow-md"
+                         onClick={handleCancel}>CANCEL</button>
                     </div>
                 </div>
            
@@ -240,6 +243,7 @@ function AddPatient() {
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
                                             required
+                                            autoComplete='off'
                                         />
                                          {errors.lastName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.lastName}</p>}
                                </div>
@@ -255,6 +259,7 @@ function AddPatient() {
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
                                             required
+                                             autoComplete='off'
                                         />
                                          {errors.firstName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.firstName}</p>}
                                </div>
@@ -269,6 +274,7 @@ function AddPatient() {
                                             value={patientInfo.middleName}
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
+                                             autoComplete='off'
                                         />
                                         {errors.middleName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.middleName}</p>}
 
@@ -284,6 +290,7 @@ function AddPatient() {
                                             value={patientInfo.extName}
                                             onChange={handleInputChange}
                                             placeholder='Enter here'
+                                             autoComplete='off'
                                         />
                                </div>
 
@@ -301,6 +308,7 @@ function AddPatient() {
                                         onChange={handleInputChange}
                                         placeholder='mm/dd/yyyy'
                                         required
+                                         autoComplete='off'
                                     />
                                     {errors.dateOfBirth && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.dateOfBirth}</p>}
                                 </div>
@@ -315,6 +323,7 @@ function AddPatient() {
                                         onChange={handleInputChange}
                                         placeholder='Enter here'
                                         required
+                                         autoComplete='off'
                                     />
                                     {errors.contact && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.contact}</p>}
                                 </div>
@@ -347,6 +356,7 @@ function AddPatient() {
                                             value={patientInfo.height}
                                             onChange={handleInputChange}
                                             placeholder='cm'
+                                             autoComplete='off'
                                         />
                                         {errors.height && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.height}</p>}
                                     </div>
@@ -378,6 +388,7 @@ function AddPatient() {
                                         name="address"
                                         value={patientInfo.address}
                                         onChange={handleInputChange}
+                                         autoComplete='off'
                                         placeholder='Barangay, Municipality, Province'
                                     />
                                     {errors.address && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.address}</p>}
@@ -402,6 +413,7 @@ function AddPatient() {
             value={patientInfo.emergencyContact.name}
             onChange={handleEmergencyContactChange}
             placeholder='Enter here'
+             autoComplete='off'
         />
         {errors.emergencyContactName && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactName}</p>}
     </div>
@@ -415,6 +427,7 @@ function AddPatient() {
             value={patientInfo.emergencyContact.address}
             onChange={handleEmergencyContactChange}
             placeholder='Barangay, Municipality, Province'
+             autoComplete='off'
         />
         {errors.emergencyContactAddress && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactAddress}</p>}
     </div>
@@ -428,6 +441,7 @@ function AddPatient() {
             value={patientInfo.emergencyContact.relationship}
             onChange={handleEmergencyContactChange}
             placeholder='Enter here'
+             autoComplete='off'
         />
         {errors.emergencyContactRelationship && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactRelationship}</p>}
     </div>
@@ -442,7 +456,8 @@ function AddPatient() {
             name="contact"
             value={patientInfo.emergencyContact.contact}
             onChange={handleEmergencyContactChange}
-            placeholder='09122978320'
+            placeholder='Enter contact'
+             autoComplete='off'
         />
         {errors.emergencyContactContact && <p className="bg-red-100 text-red-500 text-xs py-1 px-2 rounded mt-1">{errors.emergencyContactContact}</p>}
     </div>

@@ -7,9 +7,13 @@ import MoonLoader from "react-spinners/ClipLoader";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { useLocation } from 'react-router-dom';
-function AddAppointment() {
+import { Input } from 'postcss';
+import Swal from 'sweetalert2';
+function AddAppointment({userInfo,handleLogout}) {
 
-   
+    const user = userInfo[0];
+    const username = user.name;
+    const role = user.role;
 
     const navigate = useNavigate();
     function generateRandomID() {
@@ -26,13 +30,15 @@ function AddAppointment() {
     const [filteredPatients, setFilteredPatients] = useState([]);
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
+    const [duration, setDuration] = useState("");
     const [selectedPatientID, setSelectedPatientID] = useState(null); // Store selected patient ID
     const [saveLoader, setSaveLoader] = useState(false);
     const [success, setSuccess] = useState(false);
     const [failed, setFailed] = useState(false);
     const [appointmentFailed, setAppFailed] = useState(false);
-    const [vertical, setVertical] = useState('top'); // Default vertical position
+    const [vertical, setVertical] = useState('bottom'); // Default vertical position
     const [horizontal, setHorizontal] = useState('right');
+    const [filteredAppointments, setFilteredAppointments] = useState([]);
     const [appointment, setAppointment] = useState({
         id: '',
         name: '',
@@ -112,54 +118,73 @@ function AddAppointment() {
         }
         setShowPatientsList(true); // Show patients list when input is focused
     };
-   
+   const handleDurationChange = (e) => {
+        setDuration(e.target.value);
+   }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        const newID = generateRandomID();
-        const dateTimeString = `${date}T${time}:00`; // Combine date and time
-        const timestamp = new Date(dateTimeString).getTime(); // Convert to Unix timestamp
-        const appointmentStatus = "Upcoming";
-        // Log arguments for debugging
-        console.log("Arguments:", newID, timestamp, selectedPatientID, appointment.doctor, appointment.purpose);
-    
-        // Check for undefined values
-        if (!newID || !timestamp || !selectedPatientID || !appointment.doctor || !appointment.purpose) {
-            console.error("One or more arguments are undefined");
-            setAppFailed(true);
-            return;
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+
+
+    const newID = generateRandomID();
+    const appointmentStatus = "Upcoming";
+      // Get timestamp as a number (milliseconds)
+      const dateTimeString = `${date}T${time}:00`;
+      const timestamp = new Date(dateTimeString).getTime(); // This is a number, not BigInt
+    // Log arguments for debugging
+    console.log("Arguments:", newID, timestamp, selectedPatientID, appointment.doctor, appointment.purpose);
+
+    // Check for undefined values
+    if (!newID || !timestamp || !selectedPatientID || !appointment.doctor || !appointment.purpose || !duration || !appointment.name) {
+        console.error("One or more arguments are undefined");
+        setAppFailed(true);
+        return;
+    }
+   
+     // Convert duration to BigInt
+     const durationMilliseconds = BigInt(duration) * 60n * 1000n; // Ensure duration is BigInt (in milliseconds)
+ 
+     // Now safely add the two values (timestamp remains a number, duration is BigInt)
+     const timeFormat = BigInt(timestamp) + durationMilliseconds; // Convert timestamp to BigInt for addition
+ 
+     console.log("Timeformat", timeFormat);
+    if (await checkForConflict(timeFormat,durationMilliseconds) === false) {
+        // setAppFailed(true); // Optionally, handle failure here
+        return;
+    }
+    setSaveLoader(true);
+  
+    try {
+        const result = await resma_medical_clinic_backend.addAppointment(
+            newID,
+            BigInt(timestamp), // Ensure timestamp is passed as BigInt
+            selectedPatientID,
+            appointment.name,
+            appointment.doctor,
+            appointment.purpose,
+            appointmentStatus,
+            durationMilliseconds
+        );
+
+        if (result) {
+            setSaveLoader(false);
+            // Reset form
+            setAppointment({ id: '', name: '', doctor: '', purpose: '', status: '', duration: '' });
+            setDate('');
+            setTime('');
+            setSelectedPatientID(null);
+            navigate('/appointments', { state: { success: true } });
+        } else {
+            // setFailed(true);
+            console.log("Failed");
+            navigate('/appointments', { state: { failed: true } });
         }
-        setSaveLoader(true);
-        try {
-            const result = await resma_medical_clinic_backend.addAppointment(
-                newID,
-                timestamp,
-                selectedPatientID,
-                appointment.name,
-                appointment.doctor,
-                appointment.purpose,
-                appointmentStatus
-            );
-    
-            if (result) {
-                setSaveLoader(false);
-                // Reset form
-                setAppointment({ id: '', name: '', doctor: '', purpose: '', status: '' });
-                setDate('');
-                setTime('');
-                setSelectedPatientID(null);
-                navigate('/appointments', { state: { success: true } });
-            } else {
-                setFailed(true);
-                console.log("Failed");
-                navigate('/appointments', { state: { failed: true } });
-            }
-        } catch (error) {
-            console.error("Error creating appointment:", error);
-            alert('Error creating appointment');
-        }
-    };
+    } catch (error) {
+        console.error("Error creating appointment:", error);
+        alert('Error creating appointment');
+    }
+};
+
     
     const [doctors, setDoctors] = useState([]); // New state to store doctors
     useEffect(() => {
@@ -169,10 +194,9 @@ function AddAppointment() {
         }
         async function fetchDoctors() {
             const doctors = await resma_medical_clinic_backend.getAllDoctors();
-            setDoctors(doctors); // Assuming you have a setDoctors function to set the state for your dropdown
+            setDoctors(doctors);
+             // Assuming you have a setDoctors function to set the state for your dropdown
         }
-
-        
         fetchPatients();
         fetchDoctors();
         console.log(doctors);
@@ -186,63 +210,172 @@ function AddAppointment() {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
+
+       
     }, []);
+
+    
     let [color, setColor] = useState("#fff");
+    const [checkTimestamp, setCheckTimestamp] = useState(null);
+
+    const calculateEndTime = (startTimestamp, durationMinutes) => {
+        
+        return startTimestamp + durationMinutes;
+    };
+    const checkForConflict = async (timestampToCheck, durationMilliseconds) => {
+        console.log(filteredAppointments);
+        const conflictingAppointment = filteredAppointments.find(appArray => {
+            const app = appArray[1];
+            if (app.timestamp === undefined || app.duration === undefined) {
+                console.error('Missing timestamp or duration in appointment:', app);
+                return false; // Skip this appointment if the values are missing
+            }
+            const start = BigInt(app.timestamp); // Make sure it's BigInt
+                    
+            const duration = BigInt(app.duration); // Make sure it's BigInt
+                    
+            const end = calculateEndTime(start, duration);
+                    
+            const newStart = timestampToCheck - durationMilliseconds
+                  
+            console.log("Appointment duration", app.duration);
+            console.log("Appointment start", start);
+            console.log("Appointment end", end);
+            console.log("Appointment time to check", timestampToCheck);
+            
+            return (newStart >= start && newStart < end) || (timestampToCheck > start && timestampToCheck <= end);
+
+
+                       
+        });
+    
+        if (conflictingAppointment) {
+            const start = new Date(Number(conflictingAppointment[1].timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const end = new Date(Number(calculateEndTime(BigInt(conflictingAppointment[1].timestamp), BigInt(conflictingAppointment[1].duration)))).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: 'Conflict Detected!',
+                html: `<div class="text-base">
+                          <p class="text-center">An appointment is already scheduled at <i>${start} - ${end}</i>. Do you want to continue?</p>
+                  
+                      </div>`,
+                text: 'Would you like to continue?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                confirmButtonColor: '#4673FF',
+                cancelButtonColor: 'red',
+            });
+    
+            // Handle the result
+            if (result.isConfirmed) {
+                return true; // Proceed with submission if user clicks 'Yes'
+            } else {
+                return false; // Prevent submission if user clicks 'Cancel'
+            }
+        }
+    
+        return true; // Proceed with submission if no conflict
+    };
+    
+    useEffect(() => {
+        fetchAllAppointments(role, username);
+    }, []);
+    
+    const fetchAllAppointments = async (userRole, doctorName) => {
+        try {
+            const allAppointments = await resma_medical_clinic_backend.getAllAppointments();
+            
+            if (!Array.isArray(allAppointments)) {
+                console.error('Expected an array from API, received:', allAppointments);
+                return; // Exit the function if data isn't an array
+            }
+            
+            // Sort appointments by date, from soonest to latest
+            const sortedAppointments = allAppointments.sort(([idA, appA], [idB, appB]) => {
+                return Number(appA.timestamp) - Number(appB.timestamp);
+            });
+    
+            let filteredAppointments = [];
+    
+            // Check if the user is a secretary or doctor
+            if (userRole === 'Secretary') {
+                // Secretary: show all appointments
+                filteredAppointments = sortedAppointments;
+            } else if (userRole === 'Admin' || userRole === 'Doctor') {
+                // Doctor: show only appointments where the doctor's name matches
+                filteredAppointments = sortedAppointments.filter(([id, app]) => app.doctor === doctorName);
+            }
+            
+      
+            setFilteredAppointments(filteredAppointments); // Initialize with all appointments
+            console.log(filteredAppointments);
+            // // Find the earliest upcoming appointment
+            // const upcomingAppointments = filteredAppointments.filter(([id, app]) => app.status === "Upcoming");
+            // const earliestUpcomingAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+            // setLatestAppointment(earliestUpcomingAppointment); // Save the earliest upcoming appointment in state
+
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+        }
+    };
     return (
         <>
-            <Sidebar />
+           <Sidebar role={user.role} handleLogout={handleLogout} />
             <Snackbar
-                    open={success}
-                    autoHideDuration={3000}
-                    message=""
-                    onClose={handleClose}
-                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
-                    key={`${vertical}${horizontal}`}
-                   >
-                     <Alert
-                        onClose={handleClose}
-                        severity="success"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                     >
-                     Changes saved successfully!
-                    </Alert>
-                </Snackbar>
+  open={success}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`success-${vertical}${horizontal}`}  // Unique key for success Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="success"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Changes saved successfully!
+  </Alert>
+</Snackbar>
 
-                <Snackbar
-                    open={failed}
-                    autoHideDuration={3000}
-                    message=""
-                    onClose={handleClose}
-                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
-                    key={`${vertical}${horizontal}`}
-                   >
-                     <Alert
-                        onClose={handleClose}
-                        severity="error"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                     >
-                     Something went wrong!
-                    </Alert>
-            </Snackbar>
-            <Snackbar
-                    open={appointmentFailed}
-                    autoHideDuration={3000}
-                    message=""
-                    onClose={handleClose}
-                    anchorOrigin={{ vertical, horizontal }}  // Corrected anchorOrigin
-                    key={`${vertical}${horizontal}`}
-                   >
-                     <Alert
-                        onClose={handleClose}
-                        severity="error"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                     >
-                    Please fill in all fields.
-                    </Alert>
-            </Snackbar>
+<Snackbar
+  open={failed}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`failed-${vertical}${horizontal}`}  // Unique key for failed Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="error"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Something went wrong!
+  </Alert>
+</Snackbar>
+
+<Snackbar
+  open={appointmentFailed}
+  autoHideDuration={3000}
+  message=""
+  onClose={handleClose}
+  anchorOrigin={{ vertical, horizontal }}
+  key={`appointmentFailed-${vertical}${horizontal}`}  // Unique key for appointmentFailed Snackbar
+>
+  <Alert
+    onClose={handleClose}
+    severity="error"
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    Please fill in all fields.
+  </Alert>
+</Snackbar>
+
             <div className='ml-64 flex-grow font-poppins p-3 max-h-screen '>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
@@ -282,12 +415,13 @@ function AddAppointment() {
         onChange={handlePatientSearch}
         onFocus={handleInputFocus} // Trigger patients list when input is focused
         placeholder='Search patient...'
+         autoComplete='off'
     />
 
     {/* Show error only when no match is found AND no valid patient is selected */}
     {!isPatientSelected && filteredPatients.length === 0 && appointment.name !== "" && (
         <p className="text-red-500 mt-2">
-            No patients found. Please check the name or <NavLink to="/AddPatient" className="text-[#4673FF]">Register here</NavLink>.
+            No patients found. Please check the name or <NavLink to="/records/AddPatient" className="text-[#4673FF]">Register here</NavLink>.
         </p>
     )}
 
@@ -315,6 +449,7 @@ function AddAppointment() {
                                         id="purpose"
                                         value={appointment.purpose}
                                         onChange={handleInputChange}
+                                         autoComplete='off'
                                     />
                                 </div>
                             </div>
@@ -327,6 +462,7 @@ function AddAppointment() {
                                         name="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
+                                         
                                     />
                                 </div>
                                 <div className='w-1/2 mr-4'>
@@ -356,6 +492,20 @@ function AddAppointment() {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className='w-1/2 mr-4'>
+                                    <label className='mr-1 font-semibold text-black'>Duration<span className='text-[red]'>*</span></label>
+                                    <input
+                                        className="mt-2 py-1 w-full border text-black border-[#858796]-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 input-placeholder-padding"
+                                        name="duration"
+                                        value={duration}
+                                        onChange={handleDurationChange}
+                                        type="number"
+                                        placeholder='Enter estimated minutes'
+                                         autoComplete='off'
+                                    >
+                                       
+                                    </input>
                                 </div>
                                
                             </div>

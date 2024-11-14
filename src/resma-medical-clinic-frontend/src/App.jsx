@@ -19,15 +19,14 @@ import logo from './assets/resma.png';
 import Swal from 'sweetalert2';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);  // Loading state
   const [status, setStatus] = useState('');
   const [userInfo, setUserInfo] = useState(null); // Store user information
+  const [swalTrial , setTrial] = useState(true); 
   const navigate = useNavigate();
 
- 
- 
-const checkAuthStatus = async () => {
+  const checkAuthStatus = async () => {
   setLoading(true);
   try {
       const authClient = await AuthClient.create();
@@ -125,19 +124,24 @@ const checkAuthStatus = async () => {
                 
                 console.log("Backend response:", userStatus);  // Log backend response here
                 if (userStatus === "User is active.") {
+
                     console.log("User logged in successfully:", userStatus);
                     setIsAuthenticated(true);
                     localStorage.setItem('isAuthenticated', 'true');
                     const userDetails = await resma_medical_clinic_backend.getAuthenticatedUser(principalObj);
+                   
+                   // Navigate to the dashboard or home page
+                   if(userDetails){
                     setUserInfo(userDetails);
-                    navigate('/');  // Navigate to the dashboard or home page
+                    navigate('/'); 
                     setLoading(false);
+                   }
                 } else if (userStatus === "User is registered but inactive.") {
                     setLoading(true);
                     Swal.fire({
                         title: 'Acces Denied!',
                         html: `
-                            <p>Your account has been created and is now pending approval. Once verified by an admin, you'll receive a notification granting you access. Thank you for your patience!</p>
+                            <p>Your account has been created and is pending approval. Thank you for your patience!</p>
                         `,
                         icon: 'warning',
                         confirmButtonText: 'Okay',
@@ -160,24 +164,37 @@ const checkAuthStatus = async () => {
                         if (result.isConfirmed) {
                             // Show a second prompt to get the name and specialization
                             const { value: formValues,isDismissed } = await Swal.fire({
-                                title: 'Enter your details',
+                              
                                 html:
-                                    '<input id="swal-input1" class="swal2-input" placeholder="Name">' +
-                                    '<input id="swal-input2" class="swal2-input" placeholder="Specialization">',
+                                    '<h1 class=" mb-4 w-full uppercase text-xl font-[800]  tracking-wide text-[#4673FF]">ACCOUNT REGISTRATION</h1>'+
+                                    '<div class="w-full text-left mb-[-2]"><p class=" text-xs text-gray">Please fill out the required information below</p></div>'+
+                                    '<div class="w-full text-left text-black"><p class="text-sm font-[600] mb-[2px]    ">Complete Name<span class="text-[red] text-lg">*</span></p></div>'+
+                                    '<input class="text-black mb-[1px]  bg-[#E9E9E9] rounded-[5px] h-[35px] w-full border-2 border-[#858796]-300 rounded focus:outline-none input-placeholder-padding" id="swal-input1" class="swal2-input"  autocomplete="off">' +
+                                    '<div class="w-full text-left mb-[-2] text-black"><p class="text-sm font-[600]">Specialization<span class="text-[red] text-lg">*</span></p></div>'+
+                                    '<input class="h-[35px] bg-[#E9E9E9] rounded-[5px]  w-full border-2 border-[#858796]-300 rounded  focus:outline-none input-placeholder-padding" id="swal-input2" class="swal2-input"  autocomplete="off">',
                                 focusConfirm: false,
                                 showCancelButton: true,
-                                confirmButtonText: 'Submit',
+                                confirmButtonText: 'REGISTER',
+                                cancelButtonText: 'CANCEL',
                                 confirmButtonColor: '#4673FF',
-                                cancelButtonText: 'Cancel',
+                                width: '450px', 
+                                padding: '10px',
+                                customClass: {
+                                  
+                                    cancelButton: 'custom-cancel-button', // Apply custom class
+                                    confirmButton: 'custom-swal-button',
+                                  },
+                               
                                 preConfirm: () => {
                                     const name = document.getElementById('swal-input1').value;
                                     const specialization = document.getElementById('swal-input2').value;
                                     if (!name || !specialization) {
-                                        Swal.showValidationMessage('Please enter both name and specialization');
+                                        Swal.showValidationMessage('<span class="custom-validation">Please enter both name and specialization</span>');
                                         return false;
                                     }
                                     return { name, specialization };
-                                }
+                                },
+                                
                             });
                     
                             if (formValues) {
@@ -222,7 +239,7 @@ const checkAuthStatus = async () => {
         console.error('Login error: ', error);
         setStatus('Login failed. Please try again.');
     } finally {
-        setLoading(false);
+        // setLoading(false);
     }
 };
   const handleLogout = async () => {
@@ -238,24 +255,26 @@ const checkAuthStatus = async () => {
 
 
 if (loading) {
+console.log(isAuthenticated);
   return (
             <div className="flex justify-center items-center h-screen">
                 <img className="shadow-xl rounded-xl animate-subtle-spin" src={logo} alt="Loading..." width="200px" />
             </div>
         );
 }
+
   return (
     <Routes>
       <Route path="/" element={isAuthenticated ? <Dashboard userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/users" element={isAuthenticated ? <User userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/records" element={isAuthenticated ? <Records userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/appointments" element={isAuthenticated ? <Appointments userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
-      <Route path="/addPatient" element={isAuthenticated ? <AddPatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
-      <Route path="/viewPatient/:id" element={isAuthenticated ? <ViewPatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
-      <Route path="/updatePatient/:id" element={isAuthenticated ? <UpdatePatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="/records/addPatient" element={isAuthenticated ? <AddPatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="/records/viewPatient/:id" element={isAuthenticated ? <ViewPatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="/records/updatePatient/:id" element={isAuthenticated ? <UpdatePatient userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/addReport" element={isAuthenticated ? <AddReport userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
-      <Route path="/addAppointment" element={isAuthenticated ? <AddAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
-      <Route path="/updateAppointment/:id" element={isAuthenticated ? <UpdateAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="appointments/addAppointment" element={isAuthenticated ? <AddAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
+      <Route path="appointments/updateAppointment/:id" element={isAuthenticated ? <UpdateAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/login" element={<Login handleLogin={handleLogin} status={status} />} />
     </Routes>
   );

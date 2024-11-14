@@ -5,6 +5,7 @@ import icplogo from '../assets/icp-logo.png';
 
 function Login({ handleLogin }) {
     return (
+       
         <div className="w-full flex h-screen">
             <div className="w-1/2 border flex items-center justify-center">
                 <img src={icon} alt="Health icon" />
