@@ -22,6 +22,7 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { useLocation } from 'react-router-dom';
 import { MdDelete } from "react-icons/md";
+import Prints from './Prints.jsx';
 function ViewPatient({userInfo,handleLogout}){
 
   const [success, setSuccess] = useState(false);
@@ -759,7 +760,7 @@ const user = userInfo[0];
                 <div className="w-full text-center flex justify-between items-center mb-2">
                     <h1 className='text-[#4673FF] text-lg font-bold'>LABORATORY RESULTS</h1>
                     <div className="text-right">
-                        {(user.role === "Admin" || user.role === "Secretary") && (
+                        {(user.role === "Doctor" || user.role === "Secretary") && (
                             <button onClick={addLab} className='bg-[#4673FF] text-white text-xs font-semibold py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg w-[130px]'>
                                 NEW LAB REPORT
                             </button>

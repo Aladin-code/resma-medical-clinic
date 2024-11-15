@@ -139,6 +139,10 @@ function Records({userInfo, handleLogout}){
         fetchAllPatients();
     }, []);
     const user = userInfo[0];
+    if (user.role === "Admin") {
+        window.history.back(); // Goes to the previous page in the browser history
+        return;
+    }
 return(
     <>
         <Sidebar role={user.role} handleLogout={handleLogout} />

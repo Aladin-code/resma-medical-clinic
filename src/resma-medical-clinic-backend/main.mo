@@ -12,22 +12,18 @@ actor ResmaMedicalClinic {
         frequency: Text;
         instructions: Text;
     };
-
     type Report = {
         date: Text;
         diagnosis: Text;
         prescriptions: [Medication];
     };
-
     type Checkup = {
         date: Int;
     };
-
     type Result = {
         value: Float;
         unit: Text;
     };
-
     type Laboratory = {
         test: {
             date: Int;
@@ -35,14 +31,12 @@ actor ResmaMedicalClinic {
             result: [Result];
         }
     };
-
     type EmergencyContact = {
         name: Text;
         relationship: Text;
         address: Text;
         contact: Text;
     };
-
     type Patient = {
         id: Text;
         lastName: Text;
@@ -61,7 +55,6 @@ actor ResmaMedicalClinic {
         laboratory: [Laboratory];
         checkups: [Checkup];  
     };
-
     type Appointment = {
         id: Text;
         timestamp: Int;
@@ -72,7 +65,6 @@ actor ResmaMedicalClinic {
         status: Text;
         duration: Int;
     };
-
     type User = {
         principalID: Principal;
         name: Text;
@@ -80,7 +72,6 @@ actor ResmaMedicalClinic {
         role: Text;
         status: Text;
     };
-
     var users = HashMap.HashMap<Principal, User>(500, Principal.equal, Principal.hash);
      // HashMaps to store patients, appointments, and users
     var patients = HashMap.HashMap<Text, Patient>(500, Text.equal, Text.hash);
@@ -105,7 +96,7 @@ actor ResmaMedicalClinic {
       for ((id, user) in usersList.vals()) {
         users.put(id, user);
     }; 
-
+    
     for ((id, patient) in patientsList.vals()) {
         patients.put(id, patient);
     }; 
@@ -341,7 +332,6 @@ public func updatePatient(
                     duration = appointment.duration;
                 };
                 appointments.put(id, updatedAppointment); 
-                
                 // Update the appointment in the appointmentsList as well
                 appointmentsList := Array.filter(appointmentsList, func(entry: (Text, Appointment)) : Bool {
                     let (pid, _) = entry;

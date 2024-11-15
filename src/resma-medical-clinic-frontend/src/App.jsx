@@ -7,6 +7,7 @@ import Records from './pages/Records.jsx';
 import Login from './pages/Login.jsx';
 import Appointments from './pages/Appointments.jsx';
 import AddPatient from './pages/sub-pages/AddPatient.jsx';
+import Prints from './pages/sub-pages/Prints.jsx';
 import UpdatePatient from './pages/sub-pages/UpdatePatient.jsx';
 import ViewPatient from './pages/sub-pages/ViewPatient.jsx';
 import AddReport from './pages/sub-pages/AddReport.jsx';
@@ -119,9 +120,10 @@ function App() {
         await authClient.login({
             onSuccess: async () => {
                 const principal = authClient.getIdentity().getPrincipal();
+                console.log(principal);
                 const principalObj = Principal.fromText(principal.toString());
                 const userStatus = await resma_medical_clinic_backend.authenticateUser(principalObj);
-                
+             console.log(principal.toText());
                 console.log("Backend response:", userStatus);  // Log backend response here
                 if (userStatus === "User is active.") {
 
@@ -137,6 +139,7 @@ function App() {
                     setLoading(false);
                    }
                 } else if (userStatus === "User is registered but inactive.") {
+                    
                     setLoading(true);
                     Swal.fire({
                         title: 'Acces Denied!',
@@ -152,6 +155,7 @@ function App() {
                     setLoading(false);
                 } else {
                     setLoading(false);
+                    console.log("Principal", principal);
                     Swal.fire({
                         title: 'User Not Registered',
                         text: 'Would you like to register a new account?',
@@ -276,6 +280,7 @@ console.log(isAuthenticated);
       <Route path="appointments/addAppointment" element={isAuthenticated ? <AddAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="appointments/updateAppointment/:id" element={isAuthenticated ? <UpdateAppointment userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
       <Route path="/login" element={<Login handleLogin={handleLogin} status={status} />} />
+      <Route path="/prints" element={isAuthenticated ? <Prints userInfo={userInfo} handleLogout={handleLogout}/> : <Navigate to="/login" />} />
     </Routes>
   );
 }

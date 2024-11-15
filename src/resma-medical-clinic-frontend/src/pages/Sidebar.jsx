@@ -20,6 +20,8 @@ function Sidebar({role,handleLogout}) {
                     <div className='bg-white w-full h-[3px] rounded-lg shadow-lg'></div>
                 </div>
                 <div className='text-sm font-bold text-white mt-6 flex flex-col justify-center items-center'>
+                {
+                        role != "Admin" && (
                     <NavLink 
                         to="/" 
                         className={({ isActive }) => 
@@ -28,6 +30,9 @@ function Sidebar({role,handleLogout}) {
                     >
                         <MdDashboard size={25} className='mx-1'/> <div>MY DASHBOARD</div>
                     </NavLink>
+                        )}
+                    {
+                        role != "Admin" && (
                     <NavLink 
                         to="/records"  end={false}
                         className={({ isActive }) => 
@@ -39,6 +44,10 @@ function Sidebar({role,handleLogout}) {
                   
                        
                     </NavLink>
+                    )}
+
+                    {
+                        role != "Admin" && (
                     <NavLink 
                         to={"/appointments" } end={false}
                         className={({ isActive }) => 
@@ -47,6 +56,7 @@ function Sidebar({role,handleLogout}) {
                     >
                         <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />APPOINTMENTS
                     </NavLink>
+                        )}
                     {
                         role === "Admin" && (
                             <NavLink 

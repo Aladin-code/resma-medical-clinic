@@ -20,6 +20,18 @@ function Dashboard({userInfo, handleLogout}){
     return
     }
 
+          
+    const user = userInfo[0];
+    const username = user.name;
+    
+    const role = user.role;
+
+    if (role === "Admin") {
+        window.location.href = "/users"; // Redirects to the /users page
+        return;
+    }
+    
+
     const customStyles = {
     rows: {
         style: {
@@ -157,11 +169,7 @@ function Dashboard({userInfo, handleLogout}){
         },
      // This will include the Actions column only if the user role is Admin or Secretary
     ];
-      
-    const user = userInfo[0];
-    const username = user.name;
-    
-    const role = user.role;
+
 
     const getTodayAppointments = () => {
         if (!Array.isArray(appointmentsEntries)) {
