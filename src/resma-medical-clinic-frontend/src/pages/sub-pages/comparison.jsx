@@ -39,8 +39,9 @@ function Comparison({ data }) {
     console.log("Previous Test:", prevTest);
     // Accessing values correctly
     const prevValue1 = prevTest.test.result[0].value; // Accessing value1 from result array
+    const prevUnit = prevTest.test.result[0].unit; // Accessing value1 from result array
     const currentValue1 = currentTest.test.result[0].value; // Accessing value1 from result array
-
+    const curUnit = currentTest.test.result[0].unit;
     // Convert the BigInt date values to Numbers for comparisons
     const prevTestDate = formatDate(prevTest.test.date); // Convert to formatted date
     const currentTestDate = formatDate(currentTest.test.date); // Convert to formatted date
@@ -57,7 +58,7 @@ function Comparison({ data }) {
                     Previous: {prevTestDate}
                 </h5> 
                 <div className="flex text-[#4673FF] font-bold text-base mt-3">
-                    <h1 className='w-1/2 pl-[100px] text-left'>mmol/l</h1>
+                    <h1 className='w-1/2 pl-[100px] text-left'>{prevUnit}</h1>
                 </div>
                 <div className="flex justify-evenly items-center text-black font-bold text-base text-[30px] pl-[60px] mb-5">
                     <h1 className='text-center'>{prevValue1}</h1>
@@ -71,7 +72,7 @@ function Comparison({ data }) {
                     Latest: {currentTestDate}
                 </h5>
                 <div className="flex text-[#4673FF] font-bold text-base mt-3">
-                    <h1 className='w-1/2 pl-[100px] text-left'>mmol/l</h1>
+                    <h1 className='w-1/2 pl-[100px] text-left'>{curUnit}</h1>
                 </div>
                 <div className="flex justify-evenly items-center text-black font-bold text-base text-[30px] pl-[60px] mb-5">
                     <h1 className='text-center'>{currentValue1}</h1>

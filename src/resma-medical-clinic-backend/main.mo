@@ -345,7 +345,6 @@ public func updatePatient(
             };
         }
     };
-
     // Function to add a laboratory result for a patient
     public func addLaboratory(patientId: Text, laboratory: Laboratory): async Bool {
         let maybeLab = patients.get(patientId);

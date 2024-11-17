@@ -11,12 +11,12 @@ function Sidebar({role,handleLogout}) {
 //    const role = user.role;
     return (
         <>      
-            <nav className='fixed top-0 left-0 bg-[#639DFF] w-64 font-poppins h-screen pt-5 shadow-lg'>
-                <div>
-                    <img className='rounded-2xl' src={logo} alt="Logo" width="215px" height="66px" />
+            <nav className='fixed top-0 left-0 bg-[#639DFF] w-64 font-poppins h-screen pt-5 shadow-lg md:w-[70px] lg:w-64 transition-all duration-300'>
+                <div className='md:hidden  lg:block'>
+                    <img className='rounded-2xl md:w-[50px]  md:rounded-sm lg:w-[215px] lg:rounded-2xl ' src={logo} alt="Logo" width="215px" height="66px" />
                 </div>
 
-                <div className='w-full px-5 mt-8'>
+                <div className='w-full px-5 mt-8 md:px-1'>
                     <div className='bg-white w-full h-[3px] rounded-lg shadow-lg'></div>
                 </div>
                 <div className='text-sm font-bold text-white mt-6 flex flex-col justify-center items-center'>
@@ -28,7 +28,7 @@ function Sidebar({role,handleLogout}) {
                             `flex items-center h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
                         }
                     >
-                        <MdDashboard size={25} className='mx-1'/> <div>MY DASHBOARD</div>
+                        <MdDashboard size={25} className='mx-1 '/> <div className='md:hidden lg:block'>MY DASHBOARD</div>
                     </NavLink>
                         )}
                     {
@@ -40,7 +40,7 @@ function Sidebar({role,handleLogout}) {
                         }
                     >
                        
-                        <PiFolderSimplePlusFill size={25} className='mx-1 mt-[-4px]' /><div>MEDICAL RECORDS</div>
+                        <PiFolderSimplePlusFill size={25} className='mx-1 mt-[-4px]' /><div className='md:hidden lg:block'>MEDICAL RECORDS</div>
                   
                        
                     </NavLink>
@@ -54,7 +54,7 @@ function Sidebar({role,handleLogout}) {
                             `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
                         }
                     >
-                        <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />APPOINTMENTS
+                        <AiFillSchedule size={25} className='mx-1 mt-[-4px]' /><div className='md:hidden lg:block'>APPOINTMENTS</div>
                     </NavLink>
                         )}
                     {
@@ -65,7 +65,7 @@ function Sidebar({role,handleLogout}) {
                                     `h-12 w-10/12 flex justify-start items-center rounded-xl mt-5 border-4 shadow-xl px-2 ${isActive ? 'bg-white text-[#4673FF]' : 'bg-[#639DFF] text-white'} hover:bg-white hover:text-[#4673FF] active:bg-white`
                                 }
                             >
-                                <AiFillSchedule size={25} className='mx-1 mt-[-4px]' />USERS
+                                <AiFillSchedule size={25} className='mx-1 mt-[-4px]' /><div className='md:hidden lg:block'>USERS</div>
                             </NavLink>
                         )
                     }
@@ -74,8 +74,8 @@ function Sidebar({role,handleLogout}) {
                     
                     
                 </div>
-                <div className=" absolute bottom-2 text-center w-full px-4 text-white ">
-                    <button  className="bg-[#FF6347]  flex items-center text-sm py-3 w-full text-left rounded-xl font-semibold px-3"  onClick={handleLogout}>  <IoLogOut className='mx-1 text-xl hover:bg-red-3 00'/>LOGOUT</button>
+                <div className=" absolute bottom-2 text-center w-full px-4 text-white md:px-1 lg:px-4">
+                    <button  className="bg-[#FF6347]  flex items-center text-sm py-3 w-full text-left rounded-xl font-semibold px-3"  onClick={handleLogout}>  <IoLogOut className='mx-1 text-xl hover:bg-red-3 00'/><div className='md:hidden lg:block'>LOGOUT</div></button>
                 </div>
                  
             </nav>

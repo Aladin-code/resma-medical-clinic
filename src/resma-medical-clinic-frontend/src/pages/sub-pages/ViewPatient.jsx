@@ -23,6 +23,8 @@ import Alert from '@mui/material/Alert';
 import { useLocation } from 'react-router-dom';
 import { MdDelete } from "react-icons/md";
 import Prints from './Prints.jsx';
+import { IoMdPrint } from "react-icons/io";
+
 function ViewPatient({userInfo,handleLogout}){
 
   const [success, setSuccess] = useState(false);
@@ -66,7 +68,24 @@ function ViewPatient({userInfo,handleLogout}){
     const [dosage, setDosage] = useState('');
     const [quantity, setQuantity] = useState('');
     const [frequency, setFrequency] = useState('');
-    const [instructions, setInstructions] = useState('');
+    const [instructions, setInstructions] = useState("");
+    const handleInstructionsChange = (isChecked, time) => {
+      if (isChecked) {
+        if (!instructions.includes(time)) {
+          setInstructions((prev) =>
+            prev === "" ? time : `${prev}, ${time}`
+          );
+        }
+      } else {
+        setInstructions((prev) =>
+          prev
+            .split(", ")
+            .filter((t) => t !== time)
+            .join(", ")
+        );
+      }
+    };
+    
 
     const currentDate = new Date();
     const day = String(currentDate.getDate()).padStart(2, '0'); // Get day and pad with zero
@@ -81,12 +100,14 @@ function ViewPatient({userInfo,handleLogout}){
     const [medications, setMedications] = useState([]);
 
     const tests = [
-      { name: 'Blood Sugar Test', units: ['mg/dL'] },
-      { name: 'Cholesterol Test', units: ['mg/dL'] },
-      { name: 'Hemoglobin Test',  units: ['g/dL'] },
-      { name: 'Hemoglobin Test',  units: ['g/dL'] },
-      { name: 'Hemoglobin Test',  units: ['g/dL'] },
-      { name: 'Hemoglobin Test',  units: ['g/dL'] },
+      { name: 'Fasting Blood Sugar', units: ['mg/dL'] },
+      { name: 'Total Cholesterol', units: ['mg/dL'] },
+      { name: 'Tryglycerides',  units: ['mg/dL'] },
+      { name: 'Creatinine',  units: ['mg/dL'] },
+      { name: 'Sodium',  units: ['mmo/l'] },
+      { name: 'Potassium',  units: ['mmo/l'] },
+      { name: 'Chloride',  units: ['mmo/l'] },
+      { name: 'Calcium',  units: ['mg/dl'] },
       // Add other tests as needed
     ];
     const [newTest, setNewTest] = useState(null);
@@ -469,9 +490,7 @@ const user = userInfo[0];
                           className="w-full border rounded-lg border-black text-sm p-1"
                         />
                       </div>
-                    </div>
-
-                    <div>
+                      <div className="w-1/2 ml-1">
                       <p className="text-base">Frequency <span className="text-sm font-semibold text-[red]">*</span></p>
                       <input
                         type="text"
@@ -479,15 +498,71 @@ const user = userInfo[0];
                         onChange={(e) => setFrequency(e.target.value)}
                         className="w-full border rounded-lg border-black text-sm p-1"
                       />
+                      </div>
                     </div>
-
                     <h1 className="text-base font-bold mt-2">INSTRUCTIONS</h1>
-                    <input
+                    <div className='mt-2 '>
+                    <div className=" w-full flex justify-between px-3 py-3 rounded-lg border border-[black]">
+                    <div>
+      <label className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          checked={instructions.includes("8:00 AM")}
+          onChange={(e) =>
+            handleInstructionsChange(e.target.checked, "8:00 AM")
+          }
+          className="w-4 h-4 border rounded-lg border-black"
+        />
+        <span className="text-sm font-semibold">8:00 AM</span>
+      </label>
+    </div>
+    <div>
+      <label className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          checked={instructions.includes("12:00 NN")}
+          onChange={(e) =>
+            handleInstructionsChange(e.target.checked, "12:00 NN")
+          }
+          className="w-4 h-4 border rounded-lg border-black"
+        />
+        <span className="text-sm font-semibold">1:00 PM</span>
+      </label>
+    </div>
+    <div>
+      <label className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          checked={instructions.includes("6:00 PM")}
+          onChange={(e) =>
+            handleInstructionsChange(e.target.checked, "6:00 PM")
+          }
+          className="w-4 h-4 border rounded-lg border-black"
+        />
+        <span className="text-sm font-semibold">6:00 PM</span>
+      </label>
+    </div>
+    <div>
+      <label className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          checked={instructions.includes("8:00 PM")}
+          onChange={(e) =>
+            handleInstructionsChange(e.target.checked, "8:00 PM")
+          }
+          className="w-4 h-4 border rounded-lg border-black"
+        />
+        <span className="text-sm font-semibold">8:00 PM</span>
+      </label>
+    </div>
+                    </div>
+                  </div>
+                    {/* <input
                       type="text"
                       value={instructions}
                       onChange={(e) => setInstructions(e.target.value)}
                       className="w-full border rounded-lg border-black text-sm p-1"
-                    />
+                    /> */}
 
                     {/* Add button */}
                     <div className="w-full text-right">
@@ -611,7 +686,7 @@ const user = userInfo[0];
               />
               <input
                 type="text"
-                className="w-10 flex-grow border rounded-lg border-black text-sm p-1 ml-2"
+                className="w-10 flex-grow font-semibold rounded-lg border-black text-sm p-1 ml-2 focus:outline-none"
                 placeholder="Unit"
                 value={unit}
                 readOnly
@@ -817,7 +892,11 @@ const user = userInfo[0];
                             <h1 className='text-[#4673FF] text-lg font-bold '>GENERAL MEDICAL HISTORY</h1>
                             <div className=" text-right">
                             {(user.role === "Admin" || user.role === "Doctor" || user.role === "Secretary") && (
+                                  <div>
+                
+                                 
                                   <button onClick={addReport} className='bg-[#4673FF] text-white text-xs font-semibold  py-2 rounded-lg transition-all duration-300 transform hover:bg-[#365ec4] hover:scale-105 hover:shadow-lg w-[130px]'>NEW REPORT</button>
+                                  </div>
                               )}
                             
                             </div>
@@ -825,7 +904,7 @@ const user = userInfo[0];
                       {patient.reports && patient.reports.length > 0 ? ( // Check if there are lab results
                   
                       patient.reports.slice().reverse().map((report, index) => (
-                        <div key={index}className='bg-[#F3FAFF] rounded-xl p-1 mb-2'>
+                        <div key={index}className='bg-[#F3FAFF] rounded-xl p-1 mb-2 mt-7'>
                             <div className="flex w-full   p-3 text-xs ">
                                 <div className="w-1/5">
                                     <p className='text-[grey] font-semibold'>Date</p>
@@ -834,6 +913,9 @@ const user = userInfo[0];
                                 <div className="flex-grow ">
                                     <p className='text-[grey] font-semibold'>Diagnosis</p>
                                     <p className='font-semibold'>{report.diagnosis}</p>
+                                </div>
+                                <div className="text-lg">
+                                <Prints medication={report.prescriptions} patient={patient} date={report.date}/>
                                 </div>
                             </div>
                             <div className="w-full h-2 border-b-2 border-[grey ] "></div>
