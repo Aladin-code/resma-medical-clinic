@@ -130,7 +130,7 @@ function Users({userInfo, handleLogout }) {
     return (
         <>
               <Sidebar role={role} handleLogout={handleLogout} />
-            <div className="max-h-screen ml-64 flex-grow font-poppins p-3">
+            <div className="max-h-screen ml-64 flex-grow font-poppins p-3 md:ml-[70px] lg:ml-64">
                 <h1 className="mt-4 mb-4 px-3 text-2xl font-bold text-[#4673FF]">USER MANAGEMENT</h1>
 
                 <main className="h-full border-2 shadow-lg rounded-xl p-3">

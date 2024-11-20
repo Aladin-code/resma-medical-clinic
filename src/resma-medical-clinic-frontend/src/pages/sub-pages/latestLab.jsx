@@ -56,13 +56,13 @@ function LatestLab({ labResults, selectedTestType, onUpdate }) {
             </h3>
             <table className='w-full text-sm text-center border'>
                 <thead>
-                    <tr className='text-base text-[#4673FF] border-b border-slate'>
-                        <th className='w-1/3 p-1'>Date <span className="text-sm">(Earliest to Latest)</span></th>
+                    <tr className='text-base text-[#4673FF] border-b border-slate md:text-sm lg:text-base'>
+                        <th className='w-1/3 p-1'>Date <span className="text-sm md:text-xs lg:text-sm">(Earliest to Latest)</span></th>
                         <th className='w-1/3 p-1'>Result</th>
                         <th className='w-1/3 p-1'>Unit</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className='md:text-xs lg:text-xs'>
                     {latestTests.map((test, index) => (
                         <tr key={index} className='border-b border-slate'>
                             <td className='p-1'>

@@ -25,7 +25,7 @@ function AddAppointment({userInfo,handleLogout}) {
         }
         return prefix + randomLetters;
     }
-
+    const today = new Date().toISOString().split("T")[0];
     const [patients, setPatients] = useState([]);
     const [filteredPatients, setFilteredPatients] = useState([]);
     const [date, setDate] = useState("");
@@ -376,7 +376,7 @@ function AddAppointment({userInfo,handleLogout}) {
   </Alert>
 </Snackbar>
 
-            <div className='ml-64 flex-grow font-poppins p-3 max-h-screen '>
+            <div className='ml-64 flex-grow font-poppins p-3 max-h-screen md:ml-[70px] lg:ml-64'>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
                         <NavLink to="/appointments" className="fw-32 font-semibold text-xl text-[#A9A9A9] hover:text-[#4673FF]">APPOINTMENTS</NavLink>
@@ -462,6 +462,7 @@ function AddAppointment({userInfo,handleLogout}) {
                                         name="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
+                                        min={today}
                                          
                                     />
                                 </div>

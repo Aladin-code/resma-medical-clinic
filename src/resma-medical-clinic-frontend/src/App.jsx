@@ -262,7 +262,7 @@ if (loading) {
 console.log(isAuthenticated);
   return (
             <div className="flex justify-center items-center h-screen">
-                <img className="shadow-xl rounded-xl animate-subtle-spin" src={logo} alt="Loading..." width="200px" />
+                <img className="shadow-xl rounded-xl animate-pulse" src={logo} alt="Loading..." width="200px" />
             </div>
         );
 }

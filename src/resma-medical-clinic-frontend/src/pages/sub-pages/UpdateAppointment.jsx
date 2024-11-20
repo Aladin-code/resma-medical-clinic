@@ -329,7 +329,7 @@ const checkForConflict = async (timestampToCheck, durationMilliseconds) => {
     Please fill in all fields.
   </Alert>
 </Snackbar>
-            <div className=' ml-64 flex-grow font-poppins p-3 max-h-screen'>
+            <div className=' ml-64 flex-grow font-poppins p-3 max-h-screen md:ml-[70px] lg:ml-64'>
                 <div className='flex justify-between items-center mb-4  '>
                     <div className=''>
                         <NavLink to="/appointments" className="fw-32 font-semibold text-xl text-[#A9A9A9] hover:text-[#4673FF]">APPOINTMENTS</NavLink>

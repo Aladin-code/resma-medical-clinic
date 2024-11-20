@@ -34,7 +34,7 @@ function Appointments({userInfo, handleLogout}) {
     const [filteredAppointments, setFilteredAppointments] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(5);  
+    const [rowsPerPage, setRowsPerPage] = useState(10);  
     const [selectedDate, setSelectedDate] = useState(null);
     const [openModal, setOpenModal] = useState(false); 
     const [doneLoader, setDoneLoader] = useState({});
@@ -550,7 +550,7 @@ function Appointments({userInfo, handleLogout}) {
     return (
         <>
             <Sidebar role={user.role} handleLogout={handleLogout} />
-            <div className='ml-64 flex-grow font-poppins p-3'>
+            <div className='ml-64 flex-grow font-poppins p-3 md:ml-[70px] lg:ml-64 transition-all duration-300'>
             <h1 className='mt-4  mb-4 px-3 text-2xl font-bold text-[#4673FF]'>APPOINTMENTS</h1>
             <div>
                 <Snackbar
@@ -592,12 +592,12 @@ function Appointments({userInfo, handleLogout}) {
             </div>
                 <div className="flex w-full">
                     <div className="w-1/2 rounded-xl border-2 border-slate-200 shadow-lg px-3 py-5 relative min-h-72">
-                        <h1 className='mt-5 text-[#4673FF] text-lg font-semibold'>YOUR NEXT APPOINTMENT</h1>
+                        <h1 className='mt-5 text-[#4673FF] text-lg font-semibold md:text-base lg:text-lg'>YOUR NEXT APPOINTMENT</h1>
 
                         {latestAppointment ? (
                             <>
-                            <h1 className='my-3 text-xl font-bold  '>{formatDate(latestAppointment[1].timestamp)}</h1>
-                            <div className='text-sm my-3 leading-6'>
+                            <h1 className='my-3 text-xl font-bold  md:text-lg lg:text-xl'>{formatDate(latestAppointment[1].timestamp)}</h1>
+                            <div className='text-sm my-3 leading-6 '>
                                 <p><span className='font-semibold'>Time</span>: {formatTime(latestAppointment[1].timestamp)}</p>
                                 <p><span className='font-semibold'>Patient</span>: {latestAppointment[1].name}</p>
                                 <p><span className='font-semibold'>Purpose</span>: {latestAppointment[1].purpose}</p>
@@ -610,7 +610,7 @@ function Appointments({userInfo, handleLogout}) {
                             </div>
                         )
                         }
-                        <img className="absolute bottom-0 right-0" src={checkup} alt="" width="255px" height="286px" />
+                        <img className="absolute bottom-0 right-0 md:w-[200px] lg:w-[270px]" src={checkup} alt="" width="255px" height="286px" />
                     </div>
                     <div className="ml-2 w-1/2 border-2 border-slate-200 rounded-xl shadow-lg  min-h-72 py-0">
                     {/* <LocalizationProvider dateAdapter={AdapterDayjs}>

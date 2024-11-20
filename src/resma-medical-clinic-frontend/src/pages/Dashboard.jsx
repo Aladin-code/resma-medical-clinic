@@ -273,7 +273,7 @@ function Dashboard({userInfo, handleLogout}){
     return(
         <>
           <Sidebar role={user.role} handleLogout={handleLogout} />
-            <div className='ml-64 flex-grow  font-poppins px-1'>
+            <div className='ml-64 flex-grow  font-poppins px-1 md:ml-[70px] lg:ml-64 transition-all duration-300'>
                 <div className='flex-col'>
                 {/* <div className="w-full text-right">
                 <button className="w-40 mx-1 text-sm p-2 bg-red-500 rounded-xl text-white hover:bg-red-700"onClick={clearPatients}>Clear Patients</button>
@@ -286,11 +286,11 @@ function Dashboard({userInfo, handleLogout}){
                         <div className='w-1/2'>
                             <div className='relative h-72 mt-2 mx-3 py-3 px-5 border-2 shadow-lg rounded-2xl'>
                                 <p className='text-base font-semibold mt-[30px]'>WELCOME</p>
-                                <p  className='text-2xl font-bold'> {user?.name || 'user'}</p>
+                                <p  className='text-2xl font-bold md:text-xl lg:text-2xl'> {user?.name || 'user'}</p>
                                 <p className='text-sm font-semibold'>
                                     {user.specialization}
                                 </p>
-                                <span ><img className='absolute bottom-0 right-0' src={checkup} alt="checkup" width="270px" height="500px"/></span>
+                                <span className=''><img className='absolute bottom-0 right-0 md:w-[200px] lg:w-[270px]' src={checkup} alt="checkup" width="270px" height="500px"/></span>
                                 {/* <span className=' absolute bottom-3 left-3 text-[#4673FF] text-sm font-semibold'><a href="">Edit Profile</a></span> */}
                             </div> 
                         </div>
@@ -298,22 +298,22 @@ function Dashboard({userInfo, handleLogout}){
                             <main className="flex h-[140px] border border-2  rounded-2xl mx-1 py-4">
                                 <div className='w-1/2 flex flex-col justify-center items-center border-r-2 text-[#4673FF] '>
                                     <p className='font-semibold text-6xl'>{getTodayAppointments()}</p>
-                                    <p className='text-sm '>Appointments Today</p>
+                                    <p className='text-sm md:text-xs lg:text-sm'>Appointments Today</p>
 
                                 </div>
                                 <div className='w-1/2 flex flex-col justify-center items-center text-[#77DD77]'>
                                     <p className='font-semibold text-6xl'> {getUpcomingAppointments()}</p>
-                                    <p className='text-sm'>Upcoming Appointments    </p>
+                                    <p className='text-sm md:text-xs lg:text-sm'>Upcoming Appointments    </p>
                                 </div>
                             </main>
                             <main className="flex h-[140px] border border-2  rounded-2xl mx-1 mt-2  py-4">
                                 <div className='w-1/2 flex flex-col justify-center items-center border-r-2 text-yellow-300'>
                                     <p className='font-semibold text-6xl'>{getTotalPatients()}</p>
-                                    <p className='text-sm '>Registered Patients</p>
+                                    <p className='text-sm md:text-xs lg:text-sm'>Registered Patients</p>
                                 </div>
                                 <div className='w-1/2 flex flex-col justify-center items-center '>
                                     <p className='font-semibold text-6xl'> {getNewPatientsThisMonth()}</p>
-                                    <p className='text-sm'>New Patients  for this month   </p>
+                                    <p className='text-sm md:text-xs lg:text-sm'>New Patients  for this month   </p>
                                 </div>
                             </main>
                         </div>            

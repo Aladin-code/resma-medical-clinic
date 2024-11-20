@@ -714,7 +714,7 @@ const user = userInfo[0];
       </div>
     </main>
   </Modal>
-            <div className=' ml-64 flex-grow  font-poppins p-3'>
+            <div className=' ml-64 flex-grow  font-poppins p-3 md:ml-[70px] lg:ml-64 transition-all duration-300'>
            
                 <div className='mb-4 mt-4'>
                             <NavLink to="/records" className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#014BA8]" href="">MEDICAL RECORDS  </NavLink>
@@ -745,7 +745,7 @@ const user = userInfo[0];
                             </div>
                             <div className="w-1/5 text-xs leading-6 pl-8  font-semibold">
                                 <p>Address:</p>
-                            </div>
+                            </div>  
                             <div className="w-1/5 text-xs leading-6  ">
                                 <p>{patient.address}</p>
                             </div>

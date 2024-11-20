@@ -215,7 +215,7 @@ function UpdatePatient({userInfo,handleLogout}) {
     return (
          <>
             <Sidebar role={user.role} handleLogout={handleLogout} />
-            <div className='max-h-screen ml-64 flex-grow font-poppins p-3'>
+            <div className='max-h-screen ml-64 flex-grow font-poppins p-3 md:ml-[70px] lg:ml-64'>
                 <div className='flex justify-between items-center mb-4'>
                     <div className=''>
                         <NavLink to="/records" className="fw-32 font-semibold   text-xl text-[#A9A9A9] hover:text-[#014BA8]" href="">MEDICAL RECORDS</NavLink>
